@@ -1,0 +1,16 @@
+# Ortam degiskenleri — GIZLI ANAHTARLAR
+.env
+.env.*
+!.env.ornek
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Supabase yerel gelistirme
+sunucu/supabase/.temp/
+sunucu/supabase/.branches/
+
+# Isletim sistemi
+Thumbs.db
+.DS_Store

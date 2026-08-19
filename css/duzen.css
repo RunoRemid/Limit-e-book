@@ -1,0 +1,153 @@
+/* =============================================================
+   duzen.css — Uygulama kabuğu: üst bar, konu paneli, sahne, koç
+   ============================================================= */
+
+/* Koç artık sabit sütun değil, açılır pencere — sahne tüm genişliği alır. */
+.uygulama {
+  display: grid;
+  grid-template-columns: var(--yan-panel) minmax(0, 1fr);
+  grid-template-rows: var(--ust-bar) minmax(0, 1fr);
+  grid-template-areas:
+    "ustbar  ustbar"
+    "yan     sahne";
+  height: 100vh;
+  transition: grid-template-columns var(--gecis);
+}
+
+.uygulama[data-yan-acik="hayir"] {
+  grid-template-columns: 0px minmax(0, 1fr);
+}
+
+/* ------------------------------------------------------------- */
+/* Üst bar                                                        */
+/* ------------------------------------------------------------- */
+.ustbar {
+  grid-area: ustbar;
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-4);
+  padding: 0 var(--bosluk-4);
+  background: var(--yuzey);
+  border-bottom: 1px solid var(--cizgi);
+  box-shadow: var(--golge-1);
+  z-index: 20;
+}
+
+.marka {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-3);
+  padding-right: var(--bosluk-4);
+  border-right: 1px solid var(--cizgi);
+  height: 34px;
+}
+
+.marka__logo {
+  display: grid;
+  place-items: center;
+  width: 34px; height: 34px;
+  border-radius: var(--yuvarlak-sm);
+  background: var(--limit-kirmizi);
+  color: var(--metin-ters);
+  font-weight: 700;
+  font-size: var(--olcek-lg);
+  letter-spacing: -0.02em;
+}
+
+.marka__ad {
+  display: block;
+  font-weight: 650;
+  font-size: var(--olcek-md);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+.marka__alt {
+  display: block;
+  font-size: var(--olcek-xs);
+  color: var(--metin-soluk);
+  line-height: 1.15;
+}
+
+.ustbar__branslar {
+  display: flex;
+  gap: var(--bosluk-1);
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.ustbar__sag {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  margin-left: auto;
+}
+
+/* ------------------------------------------------------------- */
+/* Yan panel — konu ağacı                                         */
+/* ------------------------------------------------------------- */
+.yanpanel {
+  grid-area: yan;
+  background: var(--yuzey);
+  border-right: 1px solid var(--cizgi);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--bosluk-4) var(--bosluk-3) var(--bosluk-6);
+}
+
+.yanpanel__baslik {
+  font-size: var(--olcek-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--metin-soluk);
+  padding: 0 var(--bosluk-2) var(--bosluk-2);
+}
+
+/* ------------------------------------------------------------- */
+/* Sahne — soru alanı                                             */
+/* ------------------------------------------------------------- */
+.sahne {
+  grid-area: sahne;
+  overflow-y: auto;
+  padding: var(--bosluk-5) var(--bosluk-5) var(--bosluk-7);
+  scroll-behavior: smooth;
+}
+
+.sahne__ic {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bosluk-4);
+}
+
+/* ------------------------------------------------------------- */
+/* Duyarlılık                                                     */
+/* ------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  :root { --yan-panel: 250px; }
+}
+
+@media (max-width: 900px) {
+  .uygulama,
+  .uygulama[data-yan-acik="hayir"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "ustbar"
+      "sahne";
+  }
+  .yanpanel {
+    position: fixed;
+    top: var(--ust-bar);
+    bottom: 0;
+    left: 0;
+    width: min(88vw, 380px);
+    z-index: 40;
+    box-shadow: var(--golge-3);
+    transform: translateX(-102%);
+    transition: transform var(--gecis);
+  }
+  .uygulama[data-yan-acik="evet"] .yanpanel { transform: none; }
+  .sahne { padding: var(--bosluk-4) var(--bosluk-3) var(--bosluk-7); }
+}

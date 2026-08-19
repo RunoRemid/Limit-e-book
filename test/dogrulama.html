@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8"><title>Limit · Doğrulama Koşumu</title></head><body>
+<div id="bildirimAlani"></div>
+<h1 style="font:600 20px system-ui">Limit Sayısal · Doğrulama Koşumu</h1>
+<pre id="sonuc" style="font:14px ui-monospace,Consolas,monospace;line-height:1.7">çalışıyor…</pre>
+<script src="../yapilandirma.js"></script>
+<script src="../data/veri.js"></script>
+<script src="../src/cekirdek.js"></script>
+<script src="../src/veri-servis.js"></script>
+<script src="../src/analitik.js"></script>
+<script src="../src/ai-sokratik.js"></script>
+<script>
+(function () {
+  var cikti = [], sayac = 0;
+  function kontrol(ad, kosul) { sayac++; cikti.push((kosul ? 'GECTI  ' : 'KALDI  ') + ad); }
+
+  Limit.veri.baglat();
+
+  /* ---------- veri katmani ---------- */
+  var sayfalar = Limit.veri.sayfalar();
+  var sorular = Limit.veri.sorular();
+
+  kontrol('veri: 5 brans tanimli', Limit.veri.branslar().length === 5);
+  kontrol('veri: geometri brans olarak eklendi', !!Limit.veri.brans('geometri'));
+  kontrol('veri: 10 kitap sayfasi yuklendi', sayfalar.length === 10);
+  kontrol('veri: her bransta 2 sayfa var', ['matematik','geometri','fizik','kimya','biyoloji']
+    .every(function (b) { return Limit.veri.sayfalar(b).length === 2; }));
+  kontrol('veri: toplam 50 soru', sorular.length === 50);
+
+  /* ---------- gorsel yollari ---------- */
+  var yollarTamam = sayfalar.every(function (s) {
+    return /^img\/sorular\/[a-z]+ [12]\.webp$/.test(s.gorsel);
+  });
+  kontrol('gorsel: yollar gercek dosya adlariyla (bosluklu, .webp)', yollarTamam);
+  kontrol('gorsel: hicbir yol .png degil', sayfalar.every(function (s) { return s.gorsel.indexOf('.png') === -1; }));
+  kontrol('gorsel: tum taramalar 1544x1920 olarak kayitli',
+    sayfalar.every(function (s) { return s.en === 1544 && s.boy === 1920; }));
+
+  /* ---------- bolge gecerliligi ---------- */
+  var bolgeGecerli = sorular.every(function (q) {
+    var b = q.bolge;
+    return b && b.x >= 0 && b.y >= 0 && b.en > 0 && b.boy > 0 &&
+           (b.x + b.en) <= 100.01 && (b.y + b.boy) <= 100.01;
+  });
+  kontrol('bolge: tum bolgeler sayfa sinirlari icinde', bolgeGecerli);
+
+  var bolgeSirali = sayfalar.every(function (s) {
+    return s.sorular.every(function (q) { return q.alt > q.ust; });
+  });
+  kontrol('bolge: her sorunun alt siniri ust sinirindan buyuk', bolgeSirali);
+
+  var sutunlarDogru = sorular.every(function (q) {
+    return (q.sutun === 'sol' && q.bolge.x < 25) || (q.sutun === 'sag' && q.bolge.x > 25);
+  });
+  kontrol('bolge: sol/sag sutun x koordinatlari tutarli', sutunlarDogru);
+
+  /* Ayni sutundaki sorular birbirini ortmemeli */
+  var ortusmeYok = sayfalar.every(function (s) {
+    return ['sol','sag'].every(function (sut) {
+      var liste = s.sorular.filter(function (q) { return q.sutun === sut; })
+                           .sort(function (a,b) { return a.ust - b.ust; });
+      for (var i = 1; i < liste.length; i++) {
+        if (liste[i].ust < liste[i-1].alt) return false;
+      }
+      return true;
+    });
+  });
+  kontrol('bolge: ayni sutundaki sorular ortusmuyor', ortusmeYok);
+
+  /* ---------- cevap anahtari butunlugu ---------- */
+  var basiliSayfalar = sayfalar.filter(function (s) { return s.anahtarKaynagi === 'sayfa'; });
+
+  kontrol('anahtar: 5 sayfada basili anahtar var', basiliSayfalar.length === 5);
+  kontrol('anahtar: TUM sorularda gecerli bir sik dolu',
+    sorular.every(function (q) { return /^[A-E]$/.test(q.dogru); }));
+  kontrol('anahtar: hicbir soruda dogru null degil',
+    sorular.every(function (q) { return q.dogru !== null; }));
+  kontrol('anahtar: dogru degeri her zaman secenekler icinde',
+    sorular.every(function (q) { return q.secenekler.indexOf(q.dogru) > -1; }));
+  kontrol('anahtar: anahtarVarMi servisi tutarli',
+    sorular.every(function (q) { return Limit.veri.anahtarVarMi(q.id) === true; }));
+
+  /* Kaynak etiketleri — demo verisi resmi anahtar sanilmasin */
+  var kaynaklar = { sayfa: 0, cozuldu: 0, demo: 0 };
+  sorular.forEach(function (q) { kaynaklar[q.anahtarKaynagi] = (kaynaklar[q.anahtarKaynagi] || 0) + 1; });
+
+  kontrol('etiket: her sorunun anahtarKaynagi gecerli',
+    sorular.every(function (q) { return ['sayfa','cozuldu','demo'].indexOf(q.anahtarKaynagi) > -1; }));
+  kontrol('etiket: basili anahtardan gelen 24 soru', kaynaklar.sayfa === 24);
+  kontrol('etiket: cozulerek bulunan 23 soru', kaynaklar.cozuldu === 23);
+  kontrol('etiket: demo amacli atanan 3 soru', kaynaklar.demo === 3);
+  kontrol('etiket: basili anahtarli sayfalarda soru etiketi de "sayfa"',
+    basiliSayfalar.every(function (s) {
+      return s.sorular.every(function (q) { return q.anahtarKaynagi === 'sayfa'; });
+    }));
+  kontrol('etiket: demo sorulari yalnizca GEO-T5 icinde',
+    sorular.filter(function (q) { return q.anahtarKaynagi === 'demo'; })
+           .every(function (q) { return q.sayfa === 'GEO-T5'; }));
+
+  /* ---------- video cozum ---------- */
+  kontrol('video: her soruda video_url alani var',
+    sorular.every(function (q) { return typeof q.video_url === 'string' && q.video_url.length > 10; }));
+  kontrol('video: adresler gomme (embed) bicimi',
+    sorular.every(function (q) { return /^https:\/\/[^ ]+\/embed\//.test(q.video_url); }));
+  kontrol('video: hicbir adres watch?v= bicimimde degil',
+    sorular.every(function (q) { return q.video_url.indexOf('watch?v=') === -1; }));
+  kontrol('video: gercek video kimligi bagli',
+    sorular.every(function (q) { return q.video_url.indexOf('6bq232LCoo4') > -1; }));
+
+  /* ---------- cozum kipi (Koc cozsun) ---------- */
+  var ornek = Limit.veri.soru('FIZ-T2-S5');   // dogru: B
+  var cozIstem = Limit.ai.cozumIstemi(ornek);
+
+  kontrol('cozum: istem adim adim cozmeyi soyluyor', /TAM ÇÖZÜM/.test(cozIstem));
+  kontrol('cozum: istemde dogru sik aciklanmis', /Doğru şık: B/.test(cozIstem));
+  kontrol('cozum: istem Sokratik kurali TASIMIYOR', !/CEVABI SÖYLEME/.test(cozIstem));
+  kontrol('cozum: istemde sorunun ozeti var', cozIstem.indexOf(ornek.ozet) > -1);
+
+  kontrol('cozum: istem "N. Adım:" bicimini zorunlu kiliyor', /1\. Adım:/.test(cozIstem));
+  kontrol('cozum: istem yarida birakmayi yasakliyor', /yarıda bırakma/i.test(cozIstem));
+  kontrol('cozum: istem son satirda cevabi sart kosuyor', /Doğru cevap: X/.test(cozIstem));
+  kontrol('cozum: istemde satir siniri YOK (kendini kesmesin)', !/12 satırı/.test(cozIstem));
+
+  var yerelCoz = Limit.ai.yerelCozum(ornek);
+  kontrol('cozum: cevrimdisi cozum cevabi veriyor', yerelCoz.indexOf('Doğru şık: B') > -1);
+
+  /* demo anahtarli soruda cozum istemi uyari tasimali */
+  var demoSoru = Limit.veri.soru('GEO-T5-S1');
+  kontrol('cozum: demo anahtarli soruda istem uyari iceriyor',
+    /kesinleşmemiştir/.test(Limit.ai.cozumIstemi(demoSoru)));
+
+  /* ---------- sinirsiz deneme: acilis mesaji ---------- */
+  kontrol('deneme: denemesiz acilis normal',
+    /takıldığın her adımda/.test(Limit.ai.acilis(ornek, { denemeler: [], cozuldu: false })));
+  kontrol('deneme: denenmis soruda acilis farkli',
+    /tutturamadın/.test(Limit.ai.acilis(ornek, { denemeler: ['A', 'D'], cozuldu: false })));
+  kontrol('deneme: acilis mesaji cevabi sizdirmiyor',
+    !Limit.ai.sizintiVarMi(Limit.ai.acilis(ornek, { denemeler: ['A'], cozuldu: false }), ornek));
+
+  /* ---------- ozet: ilk denemede cozme orani ---------- */
+  var o = Limit.veri.ozet('fizik');
+  kontrol('ozet: yeni alanlar var',
+    typeof o.ilkDenemede === 'number' && typeof o.ilkDenemeYuzde === 'number' &&
+    typeof o.ortalamaDeneme === 'number');
+  kontrol('ozet: dogru/yanlis orani artik yok', o.basariYuzde === undefined);
+
+  /* ---------- yapilandirma katmani ---------- */
+  kontrol('yapilandirma: window.LimitAyar yuklendi', typeof window.LimitAyar === 'object');
+  kontrol('yapilandirma: gizli anahtar alani YOK',
+    !('openaiKey' in LimitAyar) && !('openaiApiKey' in LimitAyar) && !('serviceRoleKey' in LimitAyar));
+  kontrol('yapilandirma: model alani tanimli', typeof LimitAyar.aiModel === 'string');
+  kontrol('yapilandirma: hicbir alanda sk- ile baslayan deger yok',
+    Object.keys(LimitAyar).every(function (a) {
+      return typeof LimitAyar[a] !== 'string' || LimitAyar[a].indexOf('sk-') !== 0;
+    }));
+
+  /* ---------- analitik ---------- */
+  kontrol('analitik: modul yuklendi', typeof Limit.analitik === 'object');
+  var analitikAcildi = Limit.analitik.baglat();
+  kontrol('analitik: Supabase alanlari bossa kendini kapatir',
+    (LimitAyar.supabaseUrl && LimitAyar.supabaseAnonKey) ? analitikAcildi === true : analitikAcildi === false);
+  kontrol('analitik: oturum kimligi uretildi', /^[0-9a-f-]{36}$/i.test(Limit.analitik.oturumId()));
+
+  var analitikCokmedi = true;
+  try { Limit.analitik.olay('soru_cevap', { secim: 'B', dogru_mu: false }); }
+  catch (h) { analitikCokmedi = false; }
+  kontrol('analitik: kapaliyken olay yazmak cokmez', analitikCokmedi);
+
+  var alanlar = Limit.analitik.soruAlanlari(Limit.veri.soru('FIZ-T2-S5'));
+  kontrol('analitik: soruAlanlari dogru cikariyor',
+    alanlar.brans === 'fizik' && alanlar.sayfa_id === 'FIZ-T2' &&
+    alanlar.soru_no === 5 && alanlar.anahtar_kaynagi === 'sayfa');
+  kontrol('analitik: soruAlanlari cevabi SIZDIRMIYOR', !('dogru' in alanlar));
+
+  /* ---------- sema butunlugu ---------- */
+  kontrol('sema: her sorunun ozeti var', sorular.every(function (q) { return q.ozet && q.ozet.length > 25; }));
+  kontrol('sema: her soruda 5 sik var', sorular.every(function (q) { return q.secenekler.length === 5; }));
+  kontrol('sema: her sorunun zorlugu 1-3', sorular.every(function (q) { return q.zorluk >= 1 && q.zorluk <= 3; }));
+  kontrol('sema: soru kimlikleri benzersiz',
+    new Set(sorular.map(function (q) { return q.id; })).size === sorular.length);
+
+  /* ---------- konu rehberi ---------- */
+  kontrol('rehber: her sayfa gecerli bir rehbere bagli',
+    sayfalar.every(function (s) { return !!Limit.veri.rehber(s.rehber); }));
+  kontrol('rehber: her rehberde en az 4 ipucu var',
+    sayfalar.every(function (s) { return Limit.veri.rehber(s.rehber).ipuclari.length >= 4; }));
+  kontrol('rehber: her rehberde arac kutusu dolu',
+    sayfalar.every(function (s) { return Limit.veri.rehber(s.rehber).formuller.length >= 3; }));
+  kontrol('rehber: soru uzerinden rehbere ulasilabiliyor',
+    sorular.every(function (q) { return !!Limit.veri.soruRehberi(q.id); }));
+
+  /* ---------- gezinme ---------- */
+  var matSorulari = Limit.veri.bransSorulari('matematik');
+  kontrol('gezinme: matematik 12 soru (2 sayfa)', matSorulari.length === 12);
+  kontrol('gezinme: sayfalar kitap sirasina gore', matSorulari[0].sayfa === 'MAT-T6');
+  kontrol('gezinme: komsu ileri calisiyor',
+    Limit.veri.komsu(matSorulari[0].id, 'sonraki').id === matSorulari[1].id);
+  kontrol('gezinme: ilk sorunun oncesi yok', Limit.veri.komsu(matSorulari[0].id, 'onceki') === null);
+
+  /* ---------- sistem istemi ---------- */
+  var anahtarliSoru = Limit.veri.soru('FIZ-T2-S5');   // dogru: B (basili anahtardan)
+
+  /* Artik her soruda cevap var; ama "anahtar bekliyor" kod yolu duruyor.
+     Ileride anahtarsiz soru eklenirse cokmemeli — sentetik kopya ile test. */
+  var temelSoru = Limit.veri.soru('GEO-T5-S1');
+  var anahtarsizSoru = Object.assign({}, temelSoru, { dogru: null });
+
+  kontrol('soru: anahtarli ornek bulundu', !!anahtarliSoru && anahtarliSoru.dogru === 'B');
+  kontrol('soru: sentetik anahtarsiz soru kuruldu', anahtarsizSoru.dogru === null && !!anahtarsizSoru.id);
+
+  var istem = Limit.ai.sistemIstemi(anahtarliSoru, { kademe: 1, secim: 'A', dogruMu: false });
+  kontrol('istem: altin kural var', /CEVABI SÖYLEME/.test(istem));
+  kontrol('istem: sokratik yontem basamaklari var', /SOKRATİK MERDİVEN/.test(istem));
+  kontrol('istem: konu rehberi arac kutusu gecmis', /ARAÇ KUTUSU/.test(istem));
+  kontrol('istem: ipucu merdiveni gecmis', /İPUCU MERDİVENİ/.test(istem));
+  kontrol('istem: kademe siniri bildirilmis', /1\. kademede/.test(istem));
+  kontrol('istem: dogru sik "yalnizca senin bilgin" bolumunde', /YALNIZCA SENİN BİLGİN/.test(istem));
+  kontrol('istem: sorunun ozeti baglama girmis', istem.indexOf(anahtarliSoru.ozet) > -1);
+
+  var istem2 = Limit.ai.sistemIstemi(anahtarsizSoru, { kademe: 0 });
+  kontrol('istem: anahtarsiz soruda anahtar bolumu YOK', istem2.indexOf('YALNIZCA SENİN BİLGİN') === -1);
+  kontrol('istem: anahtarsiz soruda durum aciklanmis', /CEVAP ANAHTARI DURUMU/.test(istem2));
+
+  /* ---------- sizinti suzgeci ---------- */
+  kontrol('suzgec: acik cevabi yakalar', Limit.ai.sizintiVarMi('Dogru cevap B dir.', anahtarliSoru) === true);
+  kontrol('suzgec: iki nokta bicimini yakalar', Limit.ai.sizintiVarMi('Cevap: B', anahtarliSoru) === true);
+  kontrol('suzgec: masum metni gecirir', Limit.ai.sizintiVarMi('Vektorleri bilesenlerine ayir.', anahtarliSoru) === false);
+  /* Gerileme: sik harfi tek basina durmali; "bende" sozcugunun B si
+     dogru sik sanilip kocun kendi ret cumlesi engellenmemeli. */
+  kontrol('suzgec: kocun ret cumlesini yanlislikla engellemiyor',
+    Limit.ai.sizintiVarMi('Cevap bende kalsın; senin çıkarman lazım.', anahtarliSoru) === false);
+  kontrol('suzgec: sozcuk ici harfe takilmiyor',
+    Limit.ai.sizintiVarMi('Bu sorunun cevabı bilesenlere ayirmaktan geciyor.', anahtarliSoru) === false);
+  kontrol('suzgec: anahtarsiz soruda cokmez', Limit.ai.sizintiVarMi('Cevap: B', anahtarsizSoru) === false);
+
+  /* ---------- isaretleme tepkisi ---------- */
+  var tYanlis = Limit.ai.isaretlemeTepkisi(anahtarliSoru, 'A', false);
+  var tDogru  = Limit.ai.isaretlemeTepkisi(anahtarliSoru, 'B', true);
+  var tNotr   = Limit.ai.isaretlemeTepkisi(anahtarsizSoru, 'C', null);
+
+  kontrol('tepki: yanlis sikta cevap sizmiyor', !Limit.ai.sizintiVarMi(tYanlis, anahtarliSoru));
+  kontrol('tepki: dogru sikta yontem soruluyor', /\?/.test(tDogru));
+  kontrol('tepki: anahtarsizda "ben onaylamayacagim" tonu', /sen olacaksın/i.test(tNotr));
+  kontrol('tepki: anahtarsizda dogru/yanlis hukmu verilmiyor',
+    !/doğru!|yanlış/i.test(tNotr));
+
+  /* ---------- yerel sokratik motor ---------- */
+  function sor(soru, mesaj, kademe) {
+    return Limit.ai.sor({ soru: soru, mesaj: mesaj, gecmis: [], baglam: { kademe: kademe } });
+  }
+
+  /* ---------- uzak kip (OpenAI vekil sunucusu) ----------
+     Ag cagrisi yapmadan, fetch'i sahteleyerek sozlesmeyi dogrular:
+     dogru adrese gidiyor mu, gizli anahtar sizdiriyor mu, model
+     yapilandirmadan mi geliyor, sunucu hatasinda yerel motora
+     duselim mi, sizdiran yaniti suzuyor mu. */
+  function uzakKipiTesti() {
+    var gercekFetch = window.fetch;
+    var eskiAyar = JSON.parse(JSON.stringify(Limit.depo.al().ayarlar));
+    var yakalanan = null;
+
+    function kipKur(yanitUretici) {
+      Limit.depo.guncelle({ ayarlar: {
+        aiSaglayici: 'uzak', aiUcNokta: 'https://ornek.test/functions/v1/limit-koc'
+      } }, true);
+      window.fetch = function (adres, secenek) {
+        yakalanan = { adres: adres, secenek: secenek };
+        return Promise.resolve(yanitUretici());
+      };
+    }
+
+    function iyiYanit(metin) {
+      return {
+        ok: true,
+        json: function () { return Promise.resolve({ metin: metin, model: 'gpt-4o-mini' }); }
+      };
+    }
+
+    /* 1) Basarili tur */
+    kipKur(function () { return iyiYanit('Bileşenlere ayırmayı denedin mi?'); });
+
+    return Limit.ai.sor({
+      soru: anahtarliSoru, mesaj: 'takildim', gecmis: [], baglam: { kademe: 0 }
+    }).then(function (y) {
+      var govde = JSON.parse(yakalanan.secenek.body);
+
+      kontrol('uzak: dogru uc noktaya gidiyor',
+        yakalanan.adres === 'https://ornek.test/functions/v1/limit-koc');
+      kontrol('uzak: POST kullaniyor', yakalanan.secenek.method === 'POST');
+      kontrol('uzak: model yapilandirmadan geliyor',
+        govde.model === (LimitAyar.aiModel || 'gpt-4o-mini'));
+      kontrol('uzak: sistem istemi gonderiliyor', /CEVABI SÖYLEME/.test(govde.sistem));
+      kontrol('uzak: ogrenci mesaji gonderiliyor',
+        govde.mesajlar[govde.mesajlar.length - 1].content === 'takildim');
+      kontrol('uzak: yanit kaynagi "uzak" olarak isaretlendi', y.kaynak === 'uzak');
+
+      /* Gizli anahtar sizintisi — en kritik kontrol */
+      var hamIstek = JSON.stringify(yakalanan);
+      kontrol('GUVENLIK: istekte OpenAI anahtari YOK', hamIstek.indexOf('sk-') === -1);
+      kontrol('GUVENLIK: istekte service_role anahtari YOK',
+        hamIstek.indexOf('service_role') === -1);
+
+      /* 2) Sunucudan sizdiran yanit gelirse suzgec devreye girmeli */
+      kipKur(function () { return iyiYanit('Doğru cevap B, işaretleyebilirsin.'); });
+      return Limit.ai.sor({
+        soru: anahtarliSoru, mesaj: 'cevap ne', gecmis: [], baglam: { kademe: 0 }
+      });
+    }).then(function (y) {
+      kontrol('uzak: sizdiran sunucu yaniti engellendi', y.kaynak === 'yerel-suzgec');
+      kontrol('uzak: engellenen yanitin yerine cevapsiz ipucu kondu',
+        !Limit.ai.sizintiVarMi(y.metin, anahtarliSoru));
+
+      /* 3) Sunucu hatasinda yerel motora dusme */
+      kipKur(function () {
+        return { ok: false, status: 500, json: function () { return Promise.resolve({ hata: 'Sunucu hatası.' }); } };
+      });
+      return Limit.ai.sor({
+        soru: anahtarliSoru, mesaj: 'ipucu ver', gecmis: [], baglam: { kademe: 0 }
+      });
+    }).then(function (y) {
+      kontrol('uzak: sunucu hatasinda yerel motora dusuyor', y.kaynak === 'yerel-yedek');
+      kontrol('uzak: yedege duserken de ipucu uretiyor', y.metin.length > 40);
+
+      /* 4) Cozum kipi: sunucuya kip gidiyor mu, suzgec devre disi mi */
+      kipKur(function () { return iyiYanit('1. Bileşenlere ayır. 2. Topla. Doğru cevap B.'); });
+      return Limit.ai.sor({
+        soru: anahtarliSoru, mesaj: 'çöz', gecmis: [], baglam: {}, kip: 'cozum'
+      });
+    }).then(function (y) {
+      var govde = JSON.parse(yakalanan.secenek.body);
+      kontrol('cozum: sunucuya kip=cozum gonderiliyor', govde.kip === 'cozum');
+      kontrol('cozum: token butcesi 2000 (yarida kesilmesin)', govde.maxTokens === 2000);
+      kontrol('cozum: sunucuya cozum istemi gonderiliyor', /TAM ÇÖZÜM/.test(govde.sistem));
+      kontrol('cozum: bu kipte sizinti suzgeci DEVRE DISI', y.kaynak === 'uzak');
+      kontrol('cozum: cevabi iceren yanit gecebiliyor', y.metin.indexOf('B') > -1);
+
+      /* 5) Yardim kipinde kip alani yine dogru gitmeli */
+      kipKur(function () { return iyiYanit('Hangi kuralı kullanırsın?'); });
+      return Limit.ai.sor({
+        soru: anahtarliSoru, mesaj: 'ipucu', gecmis: [], baglam: {}, kip: 'yardim'
+      });
+    }).then(function () {
+      var govde = JSON.parse(yakalanan.secenek.body);
+      kontrol('yardim: sunucuya kip=yardim gonderiliyor', govde.kip === 'yardim');
+      kontrol('yardim: Sokratik istem gonderiliyor', /CEVABI SÖYLEME/.test(govde.sistem));
+    }).then(function () {
+      window.fetch = gercekFetch;
+      Limit.depo.guncelle({ ayarlar: eskiAyar }, true);
+    }, function (h) {
+      window.fetch = gercekFetch;
+      Limit.depo.guncelle({ ayarlar: eskiAyar }, true);
+      throw h;
+    });
+  }
+
+  sor(anahtarliSoru, 'cevabi soyle', 0).then(function (y1) {
+    kontrol('motor: cevap istegi reddedildi, sizinti yok', !Limit.ai.sizintiVarMi(y1.metin, anahtarliSoru));
+    kontrol('motor: reddederken ipucu verdi', y1.metin.length > 60);
+    kontrol('motor: kademe ilerledi', y1.kademe === 1);
+    return sor(anahtarliSoru, 'hala takildim', y1.kademe);
+  }).then(function (y2) {
+    var merdiven = Limit.ai.merdiven(anahtarliSoru);
+    kontrol('motor: ikinci kademede sonraki ipucu geldi', y2.metin.indexOf(merdiven[1]) > -1);
+    kontrol('motor: kademe 2ye cikti', y2.kademe === 2);
+    return sor(anahtarliSoru, 'hangi formulu kullanmaliyim', 2);
+  }).then(function (y3) {
+    var araclar = Limit.ai.aracKutusu(anahtarliSoru);
+    kontrol('motor: formul istegi arac kutusunu verdi', y3.metin.indexOf(araclar[0]) > -1);
+    kontrol('motor: formul yanitinda cevap yok', !Limit.ai.sizintiVarMi(y3.metin, anahtarliSoru));
+    kontrol('motor: yanit soruyla bitiyor', /\?\s*$/.test(y3.metin));
+    return sor(anahtarsizSoru, 'ipucu ver', 0);
+  }).then(function (y4) {
+    kontrol('motor: anahtarsiz soruda da ipucu uretiyor', y4.metin.length > 40);
+    return uzakKipiTesti();
+  }).then(function () {
+
+    /* hicbir rehber ipucu / ozet cevabi ele vermiyor mu? */
+    var ipucuTemiz = sorular.every(function (q) {
+      return Limit.ai.merdiven(q).every(function (ip) { return !Limit.ai.sizintiVarMi(ip, q); });
+    });
+    kontrol('guvenlik: hicbir ipucu cevabi sizdirmiyor', ipucuTemiz);
+
+    var ozetTemiz = sorular.every(function (q) { return !Limit.ai.sizintiVarMi(q.ozet, q); });
+    kontrol('guvenlik: hicbir soru ozeti cevabi sizdirmiyor', ozetTemiz);
+
+    var kaldi = cikti.filter(function (c) { return c.indexOf('KALDI') === 0; }).length;
+    cikti.push('');
+    cikti.push('TOPLAM: ' + sayac + ' kontrol · KALAN: ' + kaldi);
+    document.getElementById('sonuc').textContent = cikti.join('\n');
+  }).catch(function (h) {
+    document.getElementById('sonuc').textContent =
+      cikti.join('\n') + '\n\nHATA: ' + h.message + '\n' + h.stack;
+  });
+})();
+</script>
+</body></html>

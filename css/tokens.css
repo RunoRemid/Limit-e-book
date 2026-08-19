@@ -1,0 +1,161 @@
+/* =============================================================
+   Limit Yayınları · Sayısal e-Kitap
+   tokens.css — Tasarım değişkenleri, sıfırlama ve tipografi
+   ============================================================= */
+
+:root {
+  /* --- Marka --- */
+  --limit-kirmizi:      #C8102E;
+  --limit-kirmizi-koyu: #9E0C24;
+  --limit-kirmizi-acik: #FDECEE;
+  --limit-lacivert:     #12233F;
+  --limit-lacivert-2:   #1B3A6B;
+  --limit-lacivert-acik:#EEF2F8;
+
+  /* --- Yüzeyler (ferah, açık gri/beyaz) --- */
+  --zemin:        #F4F6F9;
+  --yuzey:        #FFFFFF;
+  --yuzey-2:      #FAFBFD;
+  --yuzey-vurgu:  #F0F3F8;
+  --cizgi:        #E3E8F0;
+  --cizgi-koyu:   #CFD7E4;
+
+  /* --- Metin --- */
+  --metin:        #12233F;
+  --metin-orta:   #4A5A73;
+  --metin-soluk:  #8494AC;
+  --metin-ters:   #FFFFFF;
+
+  /* --- Durum --- */
+  --dogru:        #0F8A5F;
+  --dogru-zemin:  #E7F6EF;
+  --yanlis:       #D33A3A;
+  --yanlis-zemin: #FDECEC;
+  --uyari:        #B7791F;
+  --uyari-zemin:  #FCF3E3;
+  --bilgi:        #1B6FB8;
+  --bilgi-zemin:  #EAF3FB;
+
+  /* --- Branş renkleri (veri.js ile birebir) --- */
+  --brans-matematik: #C8102E;
+  --brans-fizik:     #1B3A6B;
+  --brans-kimya:     #0F7A6C;
+  --brans-biyoloji:  #7A5AA8;
+
+  /* --- Tipografi --- */
+  --yazi-govde: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --yazi-sayi:  "Cambria Math", "Segoe UI", Georgia, serif;
+  --yazi-kod:   "Cascadia Mono", Consolas, "SF Mono", monospace;
+
+  --olcek-xs: 0.75rem;   /* 12px */
+  --olcek-sm: 0.8125rem; /* 13px */
+  --olcek-md: 0.9375rem; /* 15px */
+  --olcek-lg: 1.0625rem; /* 17px */
+  --olcek-xl: 1.375rem;  /* 22px */
+  --olcek-2xl: 1.75rem;  /* 28px */
+
+  /* --- Ritim --- */
+  --bosluk-1: 4px;
+  --bosluk-2: 8px;
+  --bosluk-3: 12px;
+  --bosluk-4: 16px;
+  --bosluk-5: 24px;
+  --bosluk-6: 32px;
+  --bosluk-7: 48px;
+
+  /* --- Form --- */
+  --yuvarlak-sm: 6px;
+  --yuvarlak:    10px;
+  --yuvarlak-lg: 16px;
+  --yuvarlak-tam: 999px;
+
+  --golge-1: 0 1px 2px rgba(18, 35, 63, 0.06);
+  --golge-2: 0 2px 8px rgba(18, 35, 63, 0.08);
+  --golge-3: 0 8px 28px rgba(18, 35, 63, 0.12);
+  --golge-odak: 0 0 0 3px rgba(200, 16, 46, 0.18);
+
+  /* --- Ölçüler --- */
+  --ust-bar: 60px;
+  --yan-panel: 288px;
+  --koc-panel: 400px;
+
+  --gecis: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ------------------------------------------------------------- */
+/* Sıfırlama                                                      */
+/* ------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--yazi-govde);
+  font-size: var(--olcek-md);
+  line-height: 1.55;
+  color: var(--metin);
+  background: var(--zemin);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden; /* uygulama kabuğu kendi içinde kayar */
+}
+
+h1, h2, h3, h4, p, figure, ul, ol {
+  margin: 0;
+  padding: 0;
+}
+
+ul, ol { list-style: none; }
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+img { max-width: 100%; display: block; }
+
+a { color: var(--limit-lacivert-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+:focus-visible {
+  outline: 2px solid var(--limit-kirmizi);
+  outline-offset: 2px;
+}
+
+/* Ekran okuyucuya özel */
+.gizli-erisim {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* İnce kaydırma çubuğu */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--cizgi-koyu);
+  border-radius: var(--yuvarlak-tam);
+  border: 3px solid var(--zemin);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--metin-soluk); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,276 @@
+/* =============================================================
+   tarama.css — Kitap sayfası görüntüleyici
+   -------------------------------------------------------------
+   Sayısal sorularda denklem ve şekillerin net okunması hayati.
+   Bu yüzden:
+     · Görsel ASLA doğal boyutunun üstüne zorla büyütülmez;
+       yakınlaştırma kademelidir ve kullanıcı denetimindedir.
+     · Ölçekleme yalnızca genişlik üzerinden yapılır, yükseklik
+       oranla türetilir → şekiller hiçbir kipte ezilmez/gerilmez.
+     · Konumlandırma yüzde margin ile yapılır; transform'un
+       getirdiği alt piksel bulanıklığı oluşmaz.
+     · image-rendering zorlanmaz: tarayıcının kendi yüksek
+       kaliteli küçültme süzgeci en net sonucu verir.
+   ============================================================= */
+
+.tarama {
+  padding: var(--bosluk-4);
+  background: var(--yuzey-2);
+  border-top: 1px solid var(--cizgi);
+  border-bottom: 1px solid var(--cizgi);
+}
+
+/* Pencere: yüksekliği padding-bottom yüzdesiyle kurulur, böylece
+   kapsayıcı genişliğine tam oranlı ve JS'siz responsive olur. */
+.tarama__pencere {
+  position: relative;
+  width: 100%;
+  height: 0;              /* yükseklik padding-bottom ile gelir */
+  overflow: hidden;
+  border-radius: var(--yuvarlak);
+  background: #FFFFFF;
+  border: 1px solid var(--cizgi);
+  box-shadow: var(--golge-1);
+}
+
+.tarama__gorsel {
+  /* Mutlak konum: pencerenin padding kutusuna sabitlenir, böylece
+     height:0 olan pencerede akış-içi taşma kırpılmasına takılmaz.
+     Yüzde margin'ler mutlak konumda da kapsayıcı GENİŞLİĞİNE göre
+     çözülür — odak matematiği aynen geçerli kalır. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  max-width: none;        /* ölçek width yüzdesiyle yönetiliyor */
+  height: auto;           /* en-boy oranı korunur */
+  /* Yumuşak ve net küçültme; pixelated/crisp-edges denklemleri
+     tırtıklı gösterdiği için bilinçli olarak kullanılmıyor. */
+  image-rendering: auto;
+}
+
+/* Yükleme parıltısı — görsel gelene kadar */
+.tarama__pencere:not([data-yuklendi]) {
+  background-image: linear-gradient(100deg, #FFFFFF 30%, var(--yuzey-vurgu) 50%, #FFFFFF 70%);
+  background-size: 200% 100%;
+  animation: parilti 1.4s linear infinite;
+}
+.tarama__pencere[data-yuklendi] { animation: none; }
+
+/* Hata durumunda pencere sabit yüksekliğe döner */
+.tarama__pencere[data-hata] {
+  height: auto;
+  padding-bottom: 0;
+  animation: none;
+}
+
+.tarama__not {
+  margin-top: var(--bosluk-2);
+  font-size: var(--olcek-xs);
+  color: var(--metin-soluk);
+  text-align: center;
+}
+
+.tarama[data-kip="tam"] .tarama__pencere { background: #FFFFFF; }
+
+/* ------------------------------------------------------------- */
+/* Soru şeridi + görüntüleme denetimleri                          */
+/* ------------------------------------------------------------- */
+.serit {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-3);
+  flex-wrap: wrap;
+  padding: var(--bosluk-3) var(--bosluk-4);
+}
+
+.serit__numaralar {
+  display: flex;
+  gap: var(--bosluk-2);
+  flex-wrap: wrap;
+}
+
+.serit__no {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--yuvarlak-sm);
+  border: 1.5px solid var(--cizgi-koyu);
+  background: var(--yuzey);
+  font-size: var(--olcek-sm);
+  font-weight: 650;
+  color: var(--metin-orta);
+  font-variant-numeric: tabular-nums;
+  transition: all var(--gecis);
+}
+.serit__no:hover {
+  border-color: var(--limit-lacivert-2);
+  color: var(--limit-lacivert-2);
+}
+.serit__no[aria-selected="true"] {
+  background: var(--limit-lacivert);
+  border-color: var(--limit-lacivert);
+  color: var(--metin-ters);
+}
+
+/* Çözüm durumu — seçili değilken alt şeritle gösterilir */
+.serit__no--dogru:not([aria-selected="true"])   { border-color: var(--dogru);  color: var(--dogru); }
+.serit__no--yanlis:not([aria-selected="true"])  { border-color: var(--yanlis); color: var(--yanlis); }
+.serit__no--isaretli:not([aria-selected="true"]){ border-color: var(--uyari);  color: var(--uyari); }
+
+.serit__denetim {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  margin-left: auto;
+}
+
+.yakinlik {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--cizgi-koyu);
+  border-radius: var(--yuvarlak);
+  overflow: hidden;
+  height: 30px;
+  background: var(--yuzey);
+}
+
+.yakinlik__dugme {
+  width: 30px;
+  height: 100%;
+  font-size: var(--olcek-lg);
+  font-weight: 650;
+  color: var(--metin-orta);
+  line-height: 1;
+  transition: background var(--gecis);
+}
+.yakinlik__dugme:hover { background: var(--yuzey-vurgu); color: var(--metin); }
+
+.yakinlik__deger {
+  min-width: 48px;
+  text-align: center;
+  font-size: var(--olcek-xs);
+  font-weight: 650;
+  color: var(--metin-orta);
+  font-variant-numeric: tabular-nums;
+  border-left: 1px solid var(--cizgi);
+  border-right: 1px solid var(--cizgi);
+  line-height: 28px;
+}
+
+/* ------------------------------------------------------------- */
+/* Yan panelde sayfa künyesi                                      */
+/* ------------------------------------------------------------- */
+.unite__ad { display: flex; flex-direction: column; min-width: 0; }
+.unite__konu {
+  font-size: var(--olcek-sm);
+  font-weight: 620;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.unite__alt {
+  font-size: var(--olcek-xs);
+  font-weight: 500;
+  color: var(--metin-soluk);
+  line-height: 1.25;
+}
+
+/* Cevap anahtarı basılı olmayan sayfa işareti */
+.nokta-uyari {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--uyari);
+  flex: none;
+  margin-left: var(--bosluk-1);
+}
+
+.soru-satir__durum--notr { color: var(--uyari); }
+
+/* ------------------------------------------------------------- */
+/* Anahtarsız soru için ek durumlar                               */
+/* ------------------------------------------------------------- */
+.rozet--uyari { background: var(--uyari-zemin); color: var(--uyari); }
+/* Kitabın basılı anahtarından gelmeyen ama çözülerek bulunan cevap —
+   uyarıdan daha sessiz, yine de görünür. */
+.rozet--not { background: var(--yuzey-vurgu); color: var(--metin-soluk); }
+
+.sik[data-sonuc="isaretli"] {
+  border-color: var(--uyari);
+  background: var(--uyari-zemin);
+  color: var(--uyari);
+}
+
+.geribildirim[data-durum="notr"] {
+  background: var(--uyari-zemin);
+  border-left-color: var(--uyari);
+  color: #8A5A12;
+}
+
+/* ------------------------------------------------------------- */
+/* Geniş ekranda sahneye daha fazla genişlik                      */
+/* Tarama okunabilirliği doğrudan piksel genişliğine bağlı.       */
+/* ------------------------------------------------------------- */
+@media (min-width: 1400px) {
+  .sahne__ic { max-width: 1080px; }
+}
+@media (min-width: 1700px) {
+  .sahne__ic { max-width: 1200px; }
+}
+
+@media (max-width: 640px) {
+  .tarama { padding: var(--bosluk-2); }
+  .serit { padding: var(--bosluk-3); }
+  .serit__denetim { margin-left: 0; width: 100%; justify-content: space-between; }
+}
+
+/* ------------------------------------------------------------- */
+/* Soru eylem grubu — koç ve video düğmeleri                      */
+/* Üçü yan yana, sorunun hemen altında; ekranı boğan sabit panel  */
+/* yerine öğrencinin çağırdığında gelen yardım.                   */
+/* ------------------------------------------------------------- */
+.eylem-grup {
+  display: flex;
+  gap: var(--bosluk-2);
+  flex-wrap: wrap;
+  padding: var(--bosluk-3) var(--bosluk-4);
+  border-top: 1px solid var(--cizgi);
+  background: var(--yuzey-2);
+}
+
+.eylem-grup .dugme,
+.eylem-grup .video-dugme {
+  flex: 1 1 0;
+  min-width: 150px;
+  height: 42px;
+  justify-content: center;
+}
+
+/* Video düğmesi bu grupta diğerleriyle aynı yüksekliğe gelir */
+.eylem-grup .video-dugme {
+  border-radius: var(--yuvarlak);
+  font-size: var(--olcek-md);
+}
+
+.dugme--koc-yardim {
+  background: var(--limit-lacivert);
+  color: var(--metin-ters);
+}
+.dugme--koc-yardim:hover { background: var(--limit-lacivert-2); }
+
+.dugme--koc-cozum {
+  background: var(--yuzey);
+  color: #0F7A6C;
+  border: 1px solid #9ED6CE;
+}
+.dugme--koc-cozum:hover { background: #E7F6F3; border-color: #0F7A6C; }
+
+.eylem-grup__ikon { font-size: var(--olcek-md); line-height: 1; }
+
+@media (max-width: 640px) {
+  .eylem-grup { padding: var(--bosluk-3); }
+  .eylem-grup .dugme,
+  .eylem-grup .video-dugme { min-width: 0; flex: 1 1 100%; }
+  /* Dar ekranda video düğmesinin metni geri gelsin — artık grup üyesi */
+  .eylem-grup .video-dugme span:not(.video-dugme__play) { display: inline; }
+}

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Limit Yayınları TYT-AYT Sayısal etkileşimli kitap demosu">
+  <meta name="color-scheme" content="light">
+  <title>Limit Yayınları · TYT-AYT Sayısal Demo</title>
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/duzen.css">
+  <link rel="stylesheet" href="css/bilesenler.css">
+  <link rel="stylesheet" href="css/tarama.css">
+  <link rel="stylesheet" href="css/video.css">
+</head>
+<body>
+
+<div class="uygulama" id="uygulama" data-yan-acik="evet" data-koc-acik="evet">
+
+  <!-- ======================= ÜST BAR ======================= -->
+  <header class="ustbar">
+    <button class="dugme dugme--ikon" id="dugmeYanPanel" title="Konu panelini aç/kapat" aria-label="Konu paneli">☰</button>
+
+    <div class="marka">
+      <span class="marka__logo" aria-hidden="true">L</span>
+      <span>
+        <span class="marka__ad">Limit Yayınları</span>
+        <span class="marka__alt" id="markaAlt">TYT · AYT Sayısal</span>
+      </span>
+    </div>
+
+    <nav class="ustbar__branslar" id="bransSekmeleri" role="tablist" aria-label="Branşlar"></nav>
+
+    <div class="ustbar__sag">
+      <button class="dugme dugme--ikon" id="dugmeAyar" title="Ayarlar" aria-label="Ayarlar">⚙</button>
+    </div>
+  </header>
+
+  <!-- ======================= YAN PANEL ======================= -->
+  <aside class="yanpanel" aria-label="Konu listesi">
+    <div id="konuAgaci"></div>
+  </aside>
+
+  <!-- ======================= SAHNE ======================= -->
+  <main class="sahne" id="sahne" tabindex="-1"></main>
+
+  <div class="perde" id="perde"></div>
+</div>
+
+<!-- ======================= AYAR KUTUSU ======================= -->
+<dialog class="ayar-kutusu" id="ayarKutusu">
+  <h2 class="ayar-kutusu__baslik">Ayarlar</h2>
+
+  <div class="ayar-satir">
+    <label for="ayarSaglayici">Koç motoru</label>
+    <select id="ayarSaglayici">
+      <option value="yerel">Çevrimdışı (kurulum gerektirmez)</option>
+      <option value="uzak">Uzak servis (proxy uç noktası)</option>
+    </select>
+    <p class="ayar-ipucu">
+      Çevrimdışı kip, sorunun kendi Sokratik ipucu merdivenini kullanır; internet ya da anahtar istemez.
+    </p>
+  </div>
+
+  <div class="ayar-satir" id="ayarUcNoktaSatiri" style="display:none">
+    <label for="ayarUcNokta">Uç nokta adresi</label>
+    <input type="url" id="ayarUcNokta" placeholder="https://sunucum/limit-koc">
+    <p class="ayar-ipucu">
+      API anahtarı tarayıcıya gömülmez; anahtarı saklayan ince bir sunucu ucu beklenir.
+    </p>
+  </div>
+
+  <footer class="ayar-kutusu__alt">
+    <button class="dugme dugme--sade" id="ayarSifirla">Demoyu sıfırla</button>
+    <span style="margin-left:auto"></span>
+    <button class="dugme dugme--anahat" id="ayarIptal">Vazgeç</button>
+    <button class="dugme dugme--birincil" id="ayarKaydet">Kaydet</button>
+  </footer>
+</dialog>
+
+<!-- ======================= KOÇ KUTUSU =======================
+     Sabit panel yerine açılır pencere: ana ekran soruya kalsın.
+     İki kiple açılır — 'yardim' (Sokratik) ve 'cozum' (tam çözüm).
+     ========================================================== -->
+<dialog class="koc-kutusu" id="kocKutusu" aria-labelledby="kocKutusuBaslik">
+  <header class="koc__ust">
+    <span class="koc__avatar" aria-hidden="true">◈</span>
+    <span>
+      <span class="koc__ad" id="kocKutusuBaslik">Limit Koç</span>
+      <span class="koc__alt" id="kocAltBilgi"></span>
+    </span>
+    <span class="koc__ust-eylem">
+      <button class="dugme dugme--ikon" id="kocTemizle" title="Oturumu sıfırla" aria-label="Oturumu sıfırla">⟲</button>
+      <button class="dugme dugme--ikon" id="kocKapat" title="Kapat (Esc)" aria-label="Koçu kapat">✕</button>
+    </span>
+  </header>
+
+  <div class="koc__akis" id="kocAkis" role="log" aria-live="polite"></div>
+
+  <div class="koc__oneriler" id="kocOneriler"></div>
+
+  <div class="koc__giris">
+    <label class="gizli-erisim" for="kocGiris">Koça mesajın</label>
+    <textarea class="koc__metin" id="kocGiris" rows="1"
+              placeholder="Takıldığın adımı yaz…"></textarea>
+    <button class="dugme dugme--birincil" id="kocGonder" title="Gönder">Gönder</button>
+  </div>
+</dialog>
+
+<!-- ======================= VİDEO ÇÖZÜM KUTUSU =======================
+     Kitap sayfasının köşesindeki QR kod deneyiminin dijital karşılığı.
+     iframe'in src'si yalnızca kutu açıkken doldurulur; kapanışta
+     boşaltılır ki video arka planda çalmaya devam etmesin.
+     ================================================================ -->
+<dialog class="video-kutusu" id="videoKutusu" aria-labelledby="videoBaslik">
+  <header class="video-kutusu__ust">
+    <span class="video-kutusu__rozet" aria-hidden="true">▶</span>
+    <span>
+      <span class="video-kutusu__baslik" id="videoBaslik">Öğretmen Çözümü</span>
+      <span class="video-kutusu__alt" id="videoAlt"></span>
+    </span>
+    <button class="dugme dugme--ikon video-kutusu__kapat" id="videoKapat"
+            title="Kapat (Esc)" aria-label="Video çözümü kapat">✕</button>
+  </header>
+
+  <div class="video-kutusu__oran">
+    <iframe id="videoCerceve" title="Video çözüm" src="" frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+  </div>
+</dialog>
+
+<div class="bildirim-alani" id="bildirimAlani" aria-live="polite"></div>
+
+<!-- =========================================================
+     BETİK SIRASI ÖNEMLİ
+     1) yapılandırma  2) veri  3) çekirdek  4) servis+analitik
+     5) ai  6) arayüz  7) app
+     ========================================================= -->
+<script src="yapilandirma.js"></script>
+<script src="data/veri.js"></script>
+<script src="src/cekirdek.js"></script>
+<script src="src/veri-servis.js"></script>
+<script src="src/analitik.js"></script>
+<script src="src/ai-sokratik.js"></script>
+<script src="src/ui-yanpanel.js"></script>
+<script src="src/ui-sayfa.js"></script>
+<script src="src/ui-koc.js"></script>
+<script src="src/app.js"></script>
+
+</body>
+</html>
