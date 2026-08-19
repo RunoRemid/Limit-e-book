@@ -57,33 +57,52 @@
 /* ------------------------------------------------------------- */
 /* Branş sekmeleri                                                */
 /* ------------------------------------------------------------- */
+/* Kızıl bar üzerinde editoryal ders navigasyonu.
+   Kutu/hap yok: tip ve altına çekilen gümüş kural çizgisi.
+   Renkli noktalar kaldırıldı — kızıl zeminde okunmuyorlardı ve
+   derslerin kimliğini sol panel ile ilerleme çubuğu zaten taşıyor. */
 .brans-sekme {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--bosluk-2);
-  height: 34px;
-  padding: 0 var(--bosluk-3);
-  border-radius: var(--yuvarlak-tam);
-  font-size: var(--olcek-sm);
-  font-weight: 600;
-  color: var(--metin-orta);
-  border: 1px solid transparent;
-  transition: all var(--gecis);
+  height: 100%;
+  padding: 0 var(--bosluk-2);
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-family: var(--yazi-govde);
+  font-size: var(--olcek-md);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.78);
+  transition: color var(--gecis);
+  white-space: nowrap;
 }
-.brans-sekme:hover { background: var(--yuzey-vurgu); color: var(--metin); }
+.brans-sekme:hover { color: #FFFFFF; background: none; }
 
-.brans-sekme__nokta {
-  width: 9px; height: 9px;
-  border-radius: 50%;
-  background: var(--brans-renk, var(--metin-soluk));
-  flex: none;
+/* Gümüş yaldız kural çizgisi — seçili derste açılır */
+.brans-sekme::after {
+  content: "";
+  position: absolute;
+  left: var(--bosluk-2);
+  right: var(--bosluk-2);
+  bottom: 16px;
+  height: 2px;
+  background: var(--gumus-yaldiz);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--gecis);
 }
+.brans-sekme:hover::after { transform: scaleX(0.35); }
 
 .brans-sekme[aria-selected="true"] {
-  background: color-mix(in srgb, var(--brans-renk) 10%, transparent);
-  border-color: color-mix(in srgb, var(--brans-renk) 32%, transparent);
-  color: var(--brans-renk);
+  color: #FFFFFF;
+  font-weight: 600;
 }
+.brans-sekme[aria-selected="true"]::after { transform: scaleX(1); }
+
+/* Nokta artık kullanılmıyor; eski işaretleme kalırsa gizle. */
+.brans-sekme__nokta { display: none; }
 
 /* ------------------------------------------------------------- */
 /* Rozetler                                                       */

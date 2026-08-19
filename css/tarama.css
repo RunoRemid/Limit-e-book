@@ -274,3 +274,394 @@
   /* Dar ekranda video düğmesinin metni geri gelsin — artık grup üyesi */
   .eylem-grup .video-dugme span:not(.video-dugme__play) { display: inline; }
 }
+
+/* =============================================================
+   MARKA GEÇİŞİ — soru kartı, cevap alanı, eylem hiyerarşisi
+   -------------------------------------------------------------
+   Tez: arayüz kitabın yerine geçmez, onu taşıyan mobilyadır.
+   Taranmış sayfa bir baskı gibi paspartuya monte edilir;
+   marka kızılı çerçevede kalır, okuma yüzeyi nötr olur.
+   ============================================================= */
+
+/* --- İMZA: origami faset köşesi -----------------------------
+   Kuşun kanat kırımı. Kartın sol üst köşesinde gümüş fasetli bir
+   üçgen; ortasındaki kızıl çizgi kırım hattı.
+   Bu motif YALNIZCA iki yerde: burada ve ilerleme çubuğunun ucunda. */
+/* Sol üst köşe bilinçli olarak KARE bırakılır ki faset gerçek bir
+   kâğıt kırımı gibi otursun; yuvarlak köşe onu kırpıp anlamsız bir
+   çizgiye çeviriyordu. */
+.kart--soru {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--cizgi);
+  border-top-left-radius: 0;
+  box-shadow: var(--golge-monte);
+}
+
+/* Kırım SAF GÜMÜŞ. İlk denemede fasetin ortasına kızıl bir kırım
+   çizgisi konmuştu; küçük ölçekte yaldız gibi değil, kalem çiziği
+   gibi okundu. Kızıl zaten header ve ana düğmede var — buradan
+   çıkarıldı (bir aksesuvarı çıkar kuralı). */
+.kart--soru::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 34px; height: 34px;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  background: linear-gradient(135deg,
+              #FFFFFF 0%, #EDEDF0 26%, #C6C6CC 52%,
+              #9A9AA0 74%, #7C7E84 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* --- Künye: kitabın "sayfa üstü başlığı" -------------------- */
+.kart--soru .soru-ust {
+  padding-left: var(--bosluk-6);      /* fasete yer aç */
+  background: var(--yuzey);
+  border-bottom: 1px solid var(--cizgi);
+}
+
+.soru-ust__konu {
+  font-family: var(--yazi-baslik);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  color: var(--murekkep);
+}
+
+.soru-ust__kod {
+  font-family: var(--yazi-govde);
+  font-size: var(--olcek-xs);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--metin-soluk);
+}
+
+.kronometre {
+  font-family: var(--yazi-baslik);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--murekkep);
+}
+
+/* --- Tarama: paspartuya monte baskı ------------------------- */
+.tarama {
+  padding: var(--bosluk-5);
+  background: var(--yuzey-2);
+  border-top: none;
+  border-bottom: 1px solid var(--cizgi);
+}
+
+.tarama__pencere {
+  border: 1px solid var(--gumus-orta);
+  border-radius: 2px;                  /* baskı köşesi keskin durur */
+  box-shadow: var(--golge-monte);
+}
+
+.tarama__not {
+  font-size: var(--olcek-xs);
+  letter-spacing: 0.02em;
+  color: var(--metin-soluk);
+}
+
+/* --- Soru şeridi -------------------------------------------- */
+.serit {
+  padding: var(--bosluk-3) var(--bosluk-5);
+  border-bottom: 1px solid var(--cizgi);
+  background: var(--yuzey);
+}
+
+.serit__no {
+  font-family: var(--yazi-baslik);
+  font-size: 16px;
+  font-weight: 600;
+  border-color: var(--cizgi-koyu);
+  border-radius: 4px;
+}
+.serit__no:hover { border-color: var(--kizil-yazi); color: var(--kizil-yazi); }
+.serit__no[aria-selected="true"] {
+  background: var(--kizil-zemin);
+  border-color: var(--kizil-zemin);
+  color: #FFFFFF;
+}
+.serit__no--dogru:not([aria-selected="true"]) { border-color: var(--dogru); color: var(--dogru); }
+.serit__no--isaretli:not([aria-selected="true"]) { border-color: var(--gumus-orta); color: var(--metin-orta); }
+
+/* --- Cevap alanı -------------------------------------------- */
+.cevap-alani {
+  padding: var(--bosluk-5) var(--bosluk-5) var(--bosluk-4);
+  background: var(--yuzey);
+}
+
+.siklar {
+  padding: 0;
+  gap: var(--bosluk-3);
+}
+
+.cevap-ipucu {
+  margin-top: var(--bosluk-3);
+  text-align: center;
+  font-size: var(--olcek-sm);
+  color: var(--metin-soluk);
+  letter-spacing: 0.01em;
+}
+
+/* --- Şıklar: harf tabanlı cevap ------------------------------
+   Ölçülü hareket. prefers-reduced-motion tokens.css'te global
+   olarak zaten saygı görüyor. */
+.sik {
+  height: 56px;
+  border: 1.5px solid var(--cizgi-koyu);
+  border-radius: var(--yuvarlak-sm);
+  background: var(--yuzey);
+  font-family: var(--yazi-baslik);
+  font-size: 21px;
+  font-weight: 600;
+  color: var(--metin-orta);
+  transition: border-color var(--gecis), color var(--gecis),
+              background var(--gecis), transform var(--gecis),
+              box-shadow var(--gecis);
+}
+.sik:hover:not([disabled]) {
+  border-color: var(--kizil-yazi);
+  color: var(--kizil-yazi);
+  background: var(--kizil-sis);
+  transform: translateY(-1px);
+}
+.sik:active:not([disabled]) { transform: translateY(0); }
+
+/* Doğru: sakin bir onay, tek seferlik hafif bir yerleşme */
+.sik[data-sonuc="dogru"] {
+  border-color: var(--dogru);
+  background: var(--dogru-zemin);
+  color: #0B6B4A;
+  box-shadow: 0 0 0 3px rgba(15, 138, 95, 0.14);
+  animation: sik-yerlesti 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes sik-yerlesti {
+  0%   { transform: scale(0.96); }
+  60%  { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* Yanlış: kilitlenmez, yalnızca bu şık söner ve geri çekilir */
+.sik[data-sonuc="yanlis"] {
+  border-color: var(--yanlis);
+  background: var(--yanlis-zemin);
+  color: #9E2A2A;
+  opacity: 0.72;
+  animation: sik-reddetti 200ms ease-out;
+}
+@keyframes sik-reddetti {
+  0%   { transform: translateX(0); }
+  35%  { transform: translateX(-3px); }
+  70%  { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
+
+.sik[data-sonuc="isaretli"] {
+  border-color: var(--gumus-orta);
+  background: var(--yuzey-vurgu);
+  color: var(--metin-orta);
+}
+
+/* --- Eylem hiyerarşisi ---------------------------------------
+   TEK ana eylem: Sokratik yardım. "Koç çözsün" cevabı verdiği
+   için bilinçli olarak ikincil — hiyerarşi pedagojiyi kodluyor. */
+.eylem-grup {
+  padding: var(--bosluk-4) var(--bosluk-5);
+  background: var(--yuzey-2);
+  border-top: 1px solid var(--cizgi);
+}
+
+.eylem-grup .dugme,
+.eylem-grup .video-dugme {
+  height: 46px;
+  border-radius: var(--yuvarlak-sm);
+  font-family: var(--yazi-govde);
+  font-size: var(--olcek-md);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ANA eylem — dolu marka kızılı */
+.dugme--koc-yardim {
+  background: var(--kizil-zemin);
+  color: #FFFFFF;
+  border: 1px solid var(--kizil-zemin);
+  box-shadow: 0 1px 2px rgba(110, 0, 0, 0.28);
+}
+.dugme--koc-yardim:hover {
+  background: var(--kizil-derin);
+  border-color: var(--kizil-derin);
+}
+
+/* İKİNCİL — gümüş çerçeve */
+.dugme--koc-cozum,
+.eylem-grup .video-dugme {
+  background: var(--yuzey);
+  color: var(--murekkep);
+  border: 1px solid var(--gumus-orta);
+  box-shadow: none;
+}
+.dugme--koc-cozum:hover,
+.eylem-grup .video-dugme:hover {
+  background: var(--yuzey-vurgu);
+  border-color: var(--gumus-koyu);
+  color: var(--murekkep);
+}
+
+/* Video: kızıl oynat işareti onu ikincil kalarak ayırır */
+.eylem-grup .video-dugme__play {
+  background: var(--kizil-zemin);
+  color: #FFFFFF;
+}
+.eylem-grup .video-dugme:hover .video-dugme__play {
+  background: var(--kizil-derin);
+  color: #FFFFFF;
+}
+
+/* --- Alt gezinme şeridi -------------------------------------- */
+.eylemler {
+  padding: var(--bosluk-3) var(--bosluk-5);
+  background: var(--yuzey);
+  border-top: 1px solid var(--cizgi);
+}
+
+/* --- İlerleme: faset uçlu şerit (imzanın ikinci ve son yeri) -- */
+.ilerleme { padding: var(--bosluk-3) var(--bosluk-5); }
+
+.ilerleme__cubuk {
+  height: 4px;
+  background: var(--yuzey-vurgu);
+  border-radius: 0;
+  overflow: visible;
+}
+
+.ilerleme__dolu {
+  position: relative;
+  height: 100%;
+  background: var(--kizil-zemin);
+  border-radius: 0;
+}
+/* Kırım ucu: dolgunun bittiği yerde gümüş bir faset */
+.ilerleme__dolu::after {
+  content: "";
+  position: absolute;
+  right: -1px; top: -3px;
+  width: 10px; height: 10px;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  background: var(--gumus-yaldiz);
+}
+
+.ilerleme__metin {
+  font-size: var(--olcek-xs);
+  letter-spacing: 0.02em;
+  color: var(--metin-orta);
+}
+
+.ilerleme__dolu[data-bos="evet"]::after { display: none; }
+
+/* --- Rozetler marka tonuna çekilir --------------------------- */
+.rozet--sinav {
+  background: var(--kizil-sis);
+  color: var(--kizil-derin);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+/* --- Sol panel: editoryal içindekiler ------------------------ */
+.yanpanel {
+  background: var(--yuzey);
+  border-right: 1px solid var(--cizgi);
+}
+
+.yanpanel__baslik {
+  font-family: var(--yazi-govde);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--metin-soluk);
+  padding-bottom: var(--bosluk-3);
+  margin-bottom: var(--bosluk-2);
+  border-bottom: 1px solid var(--cizgi);
+}
+
+.unite__konu {
+  font-family: var(--yazi-baslik);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--murekkep);
+}
+.unite__alt {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.soru-satir {
+  border-left: 1px solid var(--cizgi);
+  border-radius: 0;
+  padding-left: var(--bosluk-3);
+}
+.soru-satir:hover { background: var(--yuzey-vurgu); }
+.soru-satir[aria-current="true"] {
+  background: var(--kizil-sis);
+  border-left: 2px solid var(--kizil-zemin);
+  color: var(--kizil-derin);
+  font-weight: 600;
+}
+
+.unite__sayac {
+  font-family: var(--yazi-baslik);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--metin-orta);
+}
+
+/* --- Ölçek denetimleri: korunuyor, yalnızca marka stili ------ */
+.yakinlik { border-color: var(--cizgi-koyu); border-radius: var(--yuvarlak-sm); }
+.yakinlik__deger { font-family: var(--yazi-baslik); font-size: 13px; }
+
+/* Künye altı satırları ve sayısal göstergeler gövde fontunda kalır:
+   Bodoni'nin süslü % ve rakamları küçük boyutta okunurluğu düşürüyor. */
+.unite__alt { font-family: var(--yazi-govde); }
+.yakinlik__deger {
+  font-family: var(--yazi-govde);
+  font-size: var(--olcek-xs);
+  font-weight: 600;
+}
+
+/* Şık harfleri sayfadaki asıl etkileşim; gri değil mürekkep tonunda. */
+.sik { color: var(--murekkep); }
+
+/* --- Koç kutusu marka tonuna çekilir ------------------------- */
+.koc__avatar {
+  background: linear-gradient(135deg, var(--kizil-zemin), var(--kizil-derin));
+}
+.koc-kutusu[data-kip="cozum"] .koc__avatar {
+  background: linear-gradient(135deg, #5A5C64, var(--murekkep));
+}
+.koc__ad { font-family: var(--yazi-baslik); font-size: 18px; font-weight: 600; }
+.koc__alt { letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; }
+
+.oneri:hover {
+  border-color: var(--kizil-yazi);
+  color: var(--kizil-yazi);
+  background: var(--kizil-sis);
+}
+.koc__metin:focus {
+  border-color: var(--kizil-yazi);
+  box-shadow: var(--golge-odak);
+}
+
+/* Karşılama ekranı */
+.karsilama__baslik {
+  font-family: var(--yazi-baslik);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.brans-kart__ad { font-family: var(--yazi-baslik); font-size: 19px; font-weight: 600; }

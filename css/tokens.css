@@ -3,27 +3,66 @@
    tokens.css — Tasarım değişkenleri, sıfırlama ve tipografi
    ============================================================= */
 
-:root {
-  /* --- Marka --- */
-  --limit-kirmizi:      #C8102E;
-  --limit-kirmizi-koyu: #9E0C24;
-  --limit-kirmizi-acik: #FDECEE;
-  --limit-lacivert:     #12233F;
-  --limit-lacivert-2:   #1B3A6B;
-  --limit-lacivert-acik:#EEF2F8;
+/* -------------------------------------------------------------
+   MARKA KAYNAĞI
+   Aşağıdaki kızıl ve gümüş değerleri tahmin edilmedi; logo
+   dosyalarından piksel örneklemesiyle çıkarıldı:
 
-  /* --- Yüzeyler (ferah, açık gri/beyaz) --- */
-  --zemin:        #F4F6F9;
+     img/limit-logo-2.jpg  → zeminin %88,7'si #9C0000 (marka kızılı)
+                             kuşun gümüş aralığı #525252 → #EBEBEB
+     img/limit-logo.png    → "LİMİT" harfleri #CC1818
+
+   Markanın İKİ kızılı var: koyu bir ZEMİN kızılı (rozet, header,
+   dolu düğme) ve daha parlak bir YAZI kızılı (vurgu, odak, ince
+   aksan). İkisini karıştırma.
+
+   Kontrast: #9C0000 üstüne beyaz 8,70:1 · #CC1818 üstüne beyaz 5,70:1
+   ------------------------------------------------------------- */
+:root {
+  /* --- Marka: kızıl --- */
+  --kizil-zemin:  #9C0000;   /* rozet/header/dolu düğme  */
+  --kizil-yazi:   #CC1818;   /* vurgu, odak, ince aksan  */
+  --kizil-derin:  #6E0000;   /* basılı/hover derinliği   */
+  --kizil-sis:    #FBEDED;   /* en hafif kızıl yıkama    */
+
+  /* --- Marka: gümüş (kuşun fasetleri) --- */
+  --gumus-acik:   #ECECEC;
+  --gumus-orta:   #999999;
+  --gumus-koyu:   #525252;
+  /* Yaldız: düz gri değil, metalik geçiş. Yalnızca ince aksanda. */
+  --gumus-yaldiz: linear-gradient(135deg,
+                    #ECECEC 0%, #FFFFFF 16%, #BDBDC2 48%,
+                    #9A9AA0 72%, #E4E4E6 100%);
+
+  /* --- Mürekkep: geriye kalan tek koyu ton, nötr --- */
+  --murekkep:     #24252A;
+  --murekkep-2:   #3A3C44;
+
+  /* --- Eski adların marka karşılıkları -----------------------
+     Diğer css dosyaları bu adlardan besleniyor; tek kaynak burası.
+     LACİVERT MARKADAN ÇIKARILDI: nötr mürekkebe yönlendirildi.   */
+  --limit-kirmizi:      var(--kizil-zemin);
+  --limit-kirmizi-koyu: var(--kizil-derin);
+  --limit-kirmizi-acik: var(--kizil-sis);
+  --limit-lacivert:     var(--murekkep);
+  --limit-lacivert-2:   var(--murekkep-2);
+  --limit-lacivert-acik:#F0F1F3;
+
+  /* --- Yüzeyler ---------------------------------------------
+     Zemin SOĞUK kâğıt. Sıcak krem bilinçli olarak seçilmedi:
+     taramalar soğuk beyaz (#FCFCFC); sıcak bir chrome Limit'in
+     kendi basılı sayfalarını sararmış gösterirdi.               */
+  --zemin:        #F6F7F8;
   --yuzey:        #FFFFFF;
-  --yuzey-2:      #FAFBFD;
-  --yuzey-vurgu:  #F0F3F8;
-  --cizgi:        #E3E8F0;
-  --cizgi-koyu:   #CFD7E4;
+  --yuzey-2:      #FBFBFC;
+  --yuzey-vurgu:  #F0F1F3;
+  --cizgi:        #E4E5E8;
+  --cizgi-koyu:   #CFD0D5;
 
   /* --- Metin --- */
-  --metin:        #12233F;
-  --metin-orta:   #4A5A73;
-  --metin-soluk:  #8494AC;
+  --metin:        var(--murekkep);
+  --metin-orta:   #5A5C64;
+  --metin-soluk:  #8A8C94;
   --metin-ters:   #FFFFFF;
 
   /* --- Durum --- */
@@ -36,16 +75,27 @@
   --bilgi:        #1B6FB8;
   --bilgi-zemin:  #EAF3FB;
 
-  /* --- Branş renkleri (veri.js ile birebir) --- */
-  --brans-matematik: #C8102E;
-  --brans-fizik:     #1B3A6B;
-  --brans-kimya:     #0F7A6C;
-  --brans-biyoloji:  #7A5AA8;
+  /* --- Branş renkleri (veri.js ile birebir) ------------------
+     Ayırt edilebilir kalsınlar ama markayla yarışmasınlar:
+     hepsi derin ve düşük doygunlukta. Fizik'in laciverdi grafite
+     çevrildi — gümüşle akraba, markayla çelişmiyor.              */
+  --brans-matematik: #9C0000;
+  --brans-geometri:  #A8551B;
+  --brans-fizik:     #4A4C54;
+  --brans-kimya:     #1F6B58;
+  --brans-biyoloji:  #6B4A7A;
 
-  /* --- Tipografi --- */
-  --yazi-govde: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  --yazi-sayi:  "Cambria Math", "Segoe UI", Georgia, serif;
-  --yazi-kod:   "Cascadia Mono", Consolas, "SF Mono", monospace;
+  /* --- Tipografi ---------------------------------------------
+     Başlık: Bodoni Moda. Logodaki "LİMİT" yüksek kontrastlı, düz
+     ve yayvan serifli bir Didone; Bodoni onun devamı. Playfair
+     bilinçli seçilmedi (yaygın varsayılan). 18px altında KULLANMA.
+     Gövde: Schibsted Grotesk — editoryal, uzun okumaya dayanıklı.
+     İkisi de latin-ext: İ, ş, ğ, ç, ö, ü tam destekli.
+     Font gelmezse yedek yığın devreye girer.                     */
+  --yazi-baslik: "Bodoni Moda", Georgia, "Times New Roman", serif;
+  --yazi-govde:  "Schibsted Grotesk", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --yazi-sayi:   var(--yazi-baslik);
+  --yazi-kod:    "Cascadia Mono", Consolas, "SF Mono", monospace;
 
   --olcek-xs: 0.75rem;   /* 12px */
   --olcek-sm: 0.8125rem; /* 13px */
@@ -69,13 +119,18 @@
   --yuvarlak-lg: 16px;
   --yuvarlak-tam: 999px;
 
-  --golge-1: 0 1px 2px rgba(18, 35, 63, 0.06);
-  --golge-2: 0 2px 8px rgba(18, 35, 63, 0.08);
-  --golge-3: 0 8px 28px rgba(18, 35, 63, 0.12);
-  --golge-odak: 0 0 0 3px rgba(200, 16, 46, 0.18);
+  /* Gölgeler nötr mürekkep tabanlı; lacivert tonlama kaldırıldı. */
+  --golge-1: 0 1px 2px rgba(36, 37, 42, 0.05);
+  --golge-2: 0 2px 10px rgba(36, 37, 42, 0.07);
+  --golge-3: 0 18px 48px rgba(36, 37, 42, 0.18);
+  /* Taranmış sayfanın "paspartuya monte edilmiş baskı" gölgesi:
+     yakın ve sert değil, geniş ve yumuşak. */
+  --golge-monte: 0 1px 1px rgba(36, 37, 42, 0.04),
+                 0 10px 28px -14px rgba(36, 37, 42, 0.22);
+  --golge-odak: 0 0 0 3px rgba(204, 24, 24, 0.22);
 
   /* --- Ölçüler --- */
-  --ust-bar: 60px;
+  --ust-bar: 72px;
   --yan-panel: 288px;
   --koc-panel: 400px;
 

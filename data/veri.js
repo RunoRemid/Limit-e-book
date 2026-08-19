@@ -187,12 +187,15 @@
   /* -----------------------------------------------------------
      BRANŞLAR
      ----------------------------------------------------------- */
+  /* Branş renkleri tokens.css ile birebir aynı olmalı.
+     Hepsi derin ve düşük doygunlukta: ayırt edilebilirler ama
+     marka kızılıyla yarışmazlar. Fizik'in laciverdi grafite çevrildi. */
   var branslar = [
-    { id: 'matematik', ad: 'Matematik', kisa: 'MAT', renk: '#C8102E', ikon: '∑' },
-    { id: 'geometri',  ad: 'Geometri',  kisa: 'GEO', renk: '#C2410C', ikon: '△' },
-    { id: 'fizik',     ad: 'Fizik',     kisa: 'FİZ', renk: '#1B3A6B', ikon: '◎' },
-    { id: 'kimya',     ad: 'Kimya',     kisa: 'KİM', renk: '#0F7A6C', ikon: '⬡' },
-    { id: 'biyoloji',  ad: 'Biyoloji',  kisa: 'BİY', renk: '#7A5AA8', ikon: '❋' }
+    { id: 'matematik', ad: 'Matematik', kisa: 'MAT', renk: '#9C0000', ikon: '∑' },
+    { id: 'geometri',  ad: 'Geometri',  kisa: 'GEO', renk: '#A8551B', ikon: '△' },
+    { id: 'fizik',     ad: 'Fizik',     kisa: 'FİZ', renk: '#4A4C54', ikon: '◎' },
+    { id: 'kimya',     ad: 'Kimya',     kisa: 'KİM', renk: '#1F6B58', ikon: '⬡' },
+    { id: 'biyoloji',  ad: 'Biyoloji',  kisa: 'BİY', renk: '#6B4A7A', ikon: '❋' }
   ];
 
   /* -----------------------------------------------------------

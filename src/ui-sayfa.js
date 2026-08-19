@@ -276,6 +276,17 @@
       siklar.appendChild(d);
     });
 
+    /* Şıklar taranmış sayfanın İÇİNDE de yazılı. Görsele dokunamadığımız
+       için buradaki alan yalnızca HARF taşır ve altındaki satır iki
+       gösterimin ilişkisini açıkça kurar. */
+    var cevapAlani = Y.el('div', { class: 'cevap-alani' }, [
+      siklar,
+      Y.el('p', {
+        class: 'cevap-ipucu',
+        metin: 'Yukarıdaki şıklardan birini işaretle.'
+      })
+    ]);
+
     /* --- yardım grubu: koç ve video, sorunun hemen altında --- */
     var eylemGrubu = Y.el('div', { class: 'eylem-grup' }, [
       Y.el('button', {
@@ -328,7 +339,13 @@
         metin: brans.ad
       }),
       Y.el('div', { class: 'ilerleme__cubuk' }, [
-        Y.el('div', { class: 'ilerleme__dolu', style: 'width:' + yuzde + '%' })
+        /* data-bos: hiç ilerleme yokken faset ucu gösterilmez,
+           yoksa şeridin başında anlamsız bir ok gibi durur. */
+        Y.el('div', {
+          class: 'ilerleme__dolu',
+          'data-bos': yuzde === 0 ? 'evet' : 'hayir',
+          style: 'width:' + yuzde + '%'
+        })
       ]),
       Y.el('span', {
         class: 'ilerleme__metin',
@@ -342,8 +359,8 @@
     Y.bosalt(sahne).appendChild(
       Y.el('div', { class: 'sahne__ic' }, [
         ilerleme,
-        Y.el('article', { class: 'kart', 'aria-label': soru.no + '. soru' }, [
-          kunye, serit, tarama, siklar, geribildirim, eylemGrubu, eylemler
+        Y.el('article', { class: 'kart kart--soru', 'aria-label': soru.no + '. soru' }, [
+          kunye, serit, tarama, cevapAlani, geribildirim, eylemGrubu, eylemler
         ])
       ])
     );

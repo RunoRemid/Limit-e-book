@@ -21,54 +21,93 @@
 /* ------------------------------------------------------------- */
 /* Üst bar                                                        */
 /* ------------------------------------------------------------- */
+/* Marka barı: logonun kızıl rozet zemininin ekran boyu uzantısı.
+   Renk logo dosyasından örneklendi (#9C0000) ki .jpg logonun kare
+   kırpması bara görünmez biçimde karışsın.
+   Alt kenardaki gümüş saç teli, cilt yaldızının karşılığı. */
 .ustbar {
   grid-area: ustbar;
   display: flex;
   align-items: center;
-  gap: var(--bosluk-4);
-  padding: 0 var(--bosluk-4);
-  background: var(--yuzey);
-  border-bottom: 1px solid var(--cizgi);
-  box-shadow: var(--golge-1);
+  gap: var(--bosluk-5);
+  padding: 0 var(--bosluk-5);
+  background: var(--kizil-zemin);
+  border-bottom: none;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.14) inset,
+              0 2px 12px rgba(36, 37, 42, 0.18);
+  position: relative;
+  overflow: hidden;   /* logonun taşan boş kızıl payını kırpar */
   z-index: 20;
+}
+
+/* Gümüş yaldız kenarı — barın altında 2px metalik şerit */
+.ustbar::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: var(--gumus-yaldiz);
+  opacity: 0.85;
 }
 
 .marka {
   display: flex;
   align-items: center;
   gap: var(--bosluk-3);
-  padding-right: var(--bosluk-4);
-  border-right: 1px solid var(--cizgi);
-  height: 40px;
+  padding-right: var(--bosluk-5);
+  border-right: 1px solid rgba(255, 255, 255, 0.22);
+  height: 56px;
   flex: none;
 }
 
 /* Yayınevi logosu — yüksekliği menüye sabitlenir, genişlik oranla
    türetilir. object-fit: contain, logonun en-boy oranı ne olursa
    olsun ezilmesini/gerilmesini önler. */
+/* Kare masthead kilidi. Dosyanın kendi iç boşluğu çok geniş; logo
+   barın yüksekliğinden büyük ölçeklenip negatif margin ile kırpılıyor
+   ki kuş ve kelime markası okunur boyuta gelsin. Taşan kısım yalnızca
+   boş kızıl alan — .ustbar overflow:hidden ile kırpar. */
 .marka__logo {
   display: block;
-  height: 36px;
+  height: 108px;
   width: auto;
-  max-width: 150px;
   object-fit: contain;
   flex: none;
+  margin: 0 -24px;
 }
 
 /* Logo dosyası yoksa devreye giren yedek amblem */
+/* Logo yüklenemezse: kızıl barda kızıl kutu görünmez, o yüzden
+   yedek amblem gümüş yaldız plaka olarak çizilir. */
 .marka__amblem {
   display: grid;
   place-items: center;
-  width: 34px; height: 34px;
+  width: 38px; height: 38px;
   border-radius: var(--yuvarlak-sm);
-  background: var(--limit-kirmizi);
-  color: var(--metin-ters);
+  background: var(--gumus-yaldiz);
+  color: var(--kizil-derin);
+  font-family: var(--yazi-baslik);
   font-weight: 700;
-  font-size: var(--olcek-lg);
+  font-size: 22px;
   letter-spacing: -0.02em;
   flex: none;
 }
 .marka__amblem[hidden] { display: none; }
+
+/* Kızıl bardaki ikon düğmeleri beyaza döner. Bileşen dosyasındaki
+   nötr stilleri burada bar bağlamına göre eziyoruz. */
+.ustbar .dugme--ikon {
+  color: rgba(255, 255, 255, 0.85);
+  background: none;
+}
+.ustbar .dugme--ikon:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.14);
+}
+.ustbar :focus-visible {
+  outline-color: #FFFFFF;
+  outline-offset: 3px;
+}
 
 .marka__yazi { min-width: 0; }
 
@@ -77,43 +116,50 @@
 /* Yayınevi bunun bir prototip olduğunu ilk bakışta anlamalı;      */
 /* bu yüzden marka bloğunun içinde, adın hemen yanında duruyor.    */
 /* ------------------------------------------------------------- */
+/* Kızıl bar üzerinde dolu kırmızı rozet görünmez; gümüş yaldız
+   çerçeveli hâline çevrildi. Cilt üzerine basılmış bir damga gibi. */
 .ornektir {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 2px 9px;
   border-radius: 12px;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.5;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   white-space: nowrap;
   flex: none;
   color: #FFFFFF;
-  background: linear-gradient(135deg, var(--limit-kirmizi) 0%, #F26B21 100%);
-  box-shadow: 0 1px 3px rgba(200, 16, 46, 0.32);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
-.marka__ad {
-  display: block;
-  font-weight: 650;
-  font-size: var(--olcek-md);
-  letter-spacing: -0.01em;
-  line-height: 1.15;
-}
+/* Logo zaten "LİMİT YAYINLARI" kelimesini taşıyor; barda tekrar
+   etmiyoruz. Kalan tek satır ürünün ne olduğunu söyler. */
 .marka__alt {
   display: block;
+  font-family: var(--yazi-govde);
   font-size: var(--olcek-xs);
-  color: var(--metin-soluk);
-  line-height: 1.15;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
+/* Editoryal nav: renkli nokta yok, tip ve bir kural çizgisi yeter.
+   Seçili ders gümüş yaldız altı çizgiyle işaretlenir. */
 .ustbar__branslar {
   display: flex;
-  gap: var(--bosluk-1);
+  gap: var(--bosluk-2);
+  align-items: center;
   flex: 1;
   min-width: 0;
   overflow-x: auto;
+  height: 100%;
 }
 
 .ustbar__sag {
@@ -198,3 +244,8 @@
   .uygulama[data-yan-acik="evet"] .yanpanel { transform: none; }
   .sahne { padding: var(--bosluk-4) var(--bosluk-3) var(--bosluk-7); }
 }
+
+/* Ders navigasyonu dar ekranda kayar; kızıl barda çubuk göstermeyelim.
+   Kaydırma davranışı korunur, yalnızca çubuk gizlenir. */
+.ustbar__branslar { scrollbar-width: none; -ms-overflow-style: none; }
+.ustbar__branslar::-webkit-scrollbar { display: none; }
