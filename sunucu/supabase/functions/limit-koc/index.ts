@@ -78,18 +78,46 @@ const KURALLAR: Record<string, string> = {
   ].join('\n')
 };
 
-const CORS = {
-  /* Demo file:// altında da açılabildiği için origin "null" olabilir.
-     Üretimde burayı kendi alan adınızla sınırlayın. */
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
-};
+/* -------------------------------------------------------------
+   CORS — yayına çıkarken daraltılabilir olmalı.
 
-function json(govde: unknown, durum = 200): Response {
+   Site GitHub Pages'te herkese açık olduğunda bu uç nokta da
+   fiilen açık hâle gelir; anon anahtarı zaten herkese görünür.
+   Fatura sizin OpenAI hesabınıza gittiği için köken sınırlaması
+   ilk savunma hattıdır:
+
+     supabase secrets set IZINLI_KOKEN=https://kullaniciadi.github.io
+     supabase functions deploy limit-koc
+
+   Birden çok köken virgülle verilebilir. Tanımlı değilse '*'
+   kalır; yerel dosyadan (file://, origin "null") yapılan
+   denemeler bozulmasın diye varsayılan bilinçli olarak açıktır.
+   ------------------------------------------------------------- */
+const IZINLI_KOKENLER = (Deno.env.get('IZINLI_KOKEN') ?? '*')
+  .split(',').map((k) => k.trim()).filter(Boolean);
+
+function corsBasliklari(istek: Request): Record<string, string> {
+  const koken = istek.headers.get('origin') ?? '';
+  const hepsi = IZINLI_KOKENLER.includes('*');
+  const izinli = hepsi ? '*' : (IZINLI_KOKENLER.includes(koken) ? koken : '');
+
+  const basliklar: Record<string, string> = {
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  };
+  if (izinli) basliklar['Access-Control-Allow-Origin'] = izinli;
+  /* Köken listeye bağlıysa ara katmanlar yanıtı kökene göre önbelleklesin */
+  if (!hepsi) basliklar['Vary'] = 'Origin';
+  return basliklar;
+}
+
+function json(govde: unknown, durum: number, istek: Request): Response {
   return new Response(JSON.stringify(govde), {
     status: durum,
-    headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' }
+    headers: {
+      ...corsBasliklari(istek),
+      'Content-Type': 'application/json; charset=utf-8'
+    }
   });
 }
 
@@ -101,27 +129,27 @@ function sinirla(deger: unknown, alt: number, ust: number, varsayilan: number): 
 
 Deno.serve(async (istek: Request) => {
   if (istek.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS });
+    return new Response('ok', { headers: corsBasliklari(istek) });
   }
   if (istek.method !== 'POST') {
-    return json({ hata: 'Yalnızca POST kabul edilir.' }, 405);
+    return json({ hata: 'Yalnızca POST kabul edilir.' }, 405, istek);
   }
 
   const anahtar = Deno.env.get('OPENAI_API_KEY');
   if (!anahtar) {
-    return json({ hata: 'Sunucuda OPENAI_API_KEY tanımlı değil.' }, 500);
+    return json({ hata: 'Sunucuda OPENAI_API_KEY tanımlı değil.' }, 500, istek);
   }
 
   let govde: any;
   try {
     govde = await istek.json();
   } catch {
-    return json({ hata: 'Gövde geçerli JSON değil.' }, 400);
+    return json({ hata: 'Gövde geçerli JSON değil.' }, 400, istek);
   }
 
   const sistem = typeof govde?.sistem === 'string' ? govde.sistem.slice(0, SISTEM_TAVANI) : '';
   if (!sistem) {
-    return json({ hata: 'sistem alanı zorunludur.' }, 400);
+    return json({ hata: 'sistem alanı zorunludur.' }, 400, istek);
   }
 
   const gelen = Array.isArray(govde?.mesajlar) ? govde.mesajlar : [];
@@ -131,7 +159,7 @@ Deno.serve(async (istek: Request) => {
     .map((m: any) => ({ role: m.role, content: m.content.slice(0, ICERIK_TAVANI) }));
 
   if (!mesajlar.length) {
-    return json({ hata: 'En az bir kullanıcı mesajı gerekir.' }, 400);
+    return json({ hata: 'En az bir kullanıcı mesajı gerekir.' }, 400, istek);
   }
 
   const model = IZINLI_MODELLER.has(govde?.model) ? govde.model : VARSAYILAN_MODEL;
@@ -165,7 +193,7 @@ Deno.serve(async (istek: Request) => {
       const detay = await yanit.text();
       console.error('OpenAI hatası', yanit.status, detay.slice(0, 500));
       /* Anahtarı ya da sağlayıcı detayını istemciye sızdırma. */
-      return json({ hata: 'Yapay zekâ servisine ulaşılamadı.', durum: yanit.status }, 502);
+      return json({ hata: 'Yapay zekâ servisine ulaşılamadı.', durum: yanit.status }, 502, istek);
     }
 
     const veri = await yanit.json();
@@ -173,7 +201,7 @@ Deno.serve(async (istek: Request) => {
     const metin = secim?.message?.content;
 
     if (typeof metin !== 'string' || !metin.trim()) {
-      return json({ hata: 'Modelden boş yanıt geldi.' }, 502);
+      return json({ hata: 'Modelden boş yanıt geldi.' }, 502, istek);
     }
 
     /* finish_reason === 'length' → yanıt token sınırında kesildi.
@@ -195,10 +223,10 @@ Deno.serve(async (istek: Request) => {
       kip,
       kesildi,
       kullanim: veri?.usage ?? null
-    });
+    }, 200, istek);
 
   } catch (h) {
     console.error('Beklenmeyen hata', h);
-    return json({ hata: 'Sunucu hatası.' }, 500);
+    return json({ hata: 'Sunucu hatası.' }, 500, istek);
   }
 });

@@ -205,6 +205,67 @@ kipe döner.
 > cd sunucu && supabase functions deploy limit-koc
 > ```
 
+## GitHub Pages'te yayınlama
+
+Site tümüyle statiktir; GitHub Pages'te **olduğu gibi çalışır**. Sunucu gerektiren tek
+parça (OpenAI vekili) zaten Pages'te değil, Supabase Edge Function'da barınıyor.
+
+| Bileşen | Pages'te durumu |
+|---|---|
+| Soru tarayıcı, cevaplama, ilerleme | Çalışır (saf HTML/CSS/JS) |
+| localStorage kalıcılığı | Çalışır |
+| Sokratik koç (OpenAI) | Çalışır — Supabase Edge Function'a gider |
+| Analitik (Supabase) | Çalışır — PostgREST'e doğrudan `fetch` |
+| Video çözüm (YouTube) | Çalışır, hatta `file://`den daha iyi (https) |
+| Google Fonts | Çalışır |
+| `sunucu/node/` yerel vekil | Pages'te çalışmaz — zaten yalnızca yerel geliştirme içindir |
+
+### Yol denetimi
+
+Tüm yollar görelidir; depoda `/img/...` gibi baştan bölü ile başlayan **tek bir mutlak
+yol yoktur** ve `<base>` etiketi kullanılmamıştır. Bu yüzden site
+`kullaniciadi.github.io/proje-adi/` gibi bir alt klasörden sorunsuz sunulur.
+Adres yönlendirme yalnızca `#hash` kullandığı için alt klasörden etkilenmez.
+
+`.nojekyll` dosyası eklendi: Pages varsayılan olarak Jekyll çalıştırır ve alt çizgiyle
+başlayan dosyaları eler; bu dosya tüm içeriğin olduğu gibi yayınlanmasını garanti eder.
+
+### Adımlar
+
+```bash
+git add -A && git commit -m "GitHub Pages yayını"
+git push
+```
+
+Depo → **Settings → Pages** → *Source: Deploy from a branch* → `main` / `root` → Save.
+
+### ⚠ Yayına açmadan önce mutlaka
+
+**1. OpenAI bütçe sınırı koyun.** Site herkese açılınca uç noktanız da fiilen açılır:
+`yapilandirma.js` içindeki anon anahtarı herkes görebilir ve fonksiyonu çağırabilir.
+Fatura sizin hesabınıza gider. OpenAI panelinden aylık sert limit tanımlayın — bu en
+önemli koruma.
+
+**2. Uç noktayı kendi alan adınızla sınırlayın.** Edge Function artık bunu destekliyor:
+
+```bash
+supabase secrets set IZINLI_KOKEN=https://kullaniciadi.github.io
+supabase functions deploy limit-koc
+```
+
+Yerelden de denemeye devam edecekseniz `file://` kökeni `null` gönderir:
+`IZINLI_KOKEN=https://kullaniciadi.github.io,null`. Değişken tanımlı değilse `*` kalır
+(mevcut davranış bozulmaz).
+
+**3. Cevap anahtarları kaynak kodda görünür.** `data/veri.js` statik bir dosya olarak
+yayınlanır; öğrenci "sayfa kaynağını görüntüle" ile 50 sorunun `dogru` değerini
+okuyabilir. Koçun "cevabı asla söyleme" güvencesi bunu engellemez. Demo için sorun
+değil, ama gerçek öğrenci kullanımına açılacaksa cevap kontrolü sunucuya taşınmalıdır.
+
+**4. Analitik tablosuna herkes yazabilir.** RLS `anon` rolüne yalnızca INSERT veriyor
+(okuma/silme kapalı), ama kötü niyetli biri tabloyu şişirebilir. Demo ölçeğinde risk
+düşük; kalıcı kullanımda hız sınırı gerekir.
+
 ## Canlıya geçiş
 
 Demo iki kipte çalışır ve **kip geçişi ayar dosyasından yapılır, kodda değişiklik gerekmez**:
