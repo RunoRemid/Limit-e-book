@@ -31,6 +31,11 @@
   var TAM_SAYFA_BOLGE = { x: 0, y: 0, en: 100, boy: 100 };
   var YAKINLIK_KADEMELERI = [1, 1.25, 1.5, 2, 2.5];
 
+  /* Son çizilen soru. Kart giriş animasyonu YALNIZCA soru
+     değiştiğinde oynasın; yakınlaştırma ve tam sayfa geçişi de
+     kartı yeniden çiziyor, onlarda animasyon rahatsız ederdi. */
+  var sonCizilenSoru = null;
+
   /* ===========================================================
      Kronometre
      =========================================================== */
@@ -341,10 +346,13 @@
       Y.el('div', { class: 'ilerleme__cubuk' }, [
         /* data-bos: hiç ilerleme yokken faset ucu gösterilmez,
            yoksa şeridin başında anlamsız bir ok gibi durur. */
+        /* Sıfırdan başlar, bir sonraki karede hedefe geçer; CSS
+           geçişi böylece tetiklenir ve çubuk dolarak gelir. */
         Y.el('div', {
           class: 'ilerleme__dolu',
+          id: 'ilerlemeDolu',
           'data-bos': yuzde === 0 ? 'evet' : 'hayir',
-          style: 'width:' + yuzde + '%'
+          style: 'width:0%'
         })
       ]),
       Y.el('span', {
@@ -359,7 +367,10 @@
     Y.bosalt(sahne).appendChild(
       Y.el('div', { class: 'sahne__ic' }, [
         ilerleme,
-        Y.el('article', { class: 'kart kart--soru', 'aria-label': soru.no + '. soru' }, [
+        Y.el('article', {
+          class: 'kart kart--soru' + (soru.id !== sonCizilenSoru ? ' kart--girer' : ''),
+          'aria-label': soru.no + '. soru'
+        }, [
           kunye, serit, tarama, cevapAlani, geribildirim, eylemGrubu, eylemler
         ])
       ])
@@ -367,6 +378,14 @@
 
     if (!Limit.veri.komsu(soru.id, 'onceki')) Y.sec('#dugmeOnceki').setAttribute('disabled', 'disabled');
     if (!Limit.veri.komsu(soru.id, 'sonraki')) Y.sec('#dugmeSonraki').setAttribute('disabled', 'disabled');
+
+    sonCizilenSoru = soru.id;
+
+    /* İlerleme çubuğunu bir sonraki karede hedefine sür. */
+    requestAnimationFrame(function () {
+      var dolu = Y.sec('#ilerlemeDolu', sahne);
+      if (dolu) dolu.style.width = yuzde + '%';
+    });
 
     kronoBaslat(soru, kayit.sureSn || 0);
     if (cozuldu) {
@@ -429,11 +448,34 @@
     });
 
     geriBildirimBas(soru, harf, dogruMu, gecenSn, denemeler.length);
+    ilerlemeTazele(soru);
 
     Limit.olay.yayinla('soru:cevaplandi', {
       soru: soru, secim: harf, dogruMu: dogruMu,
       sureSn: gecenSn, denemeNo: denemeler.length, cozuldu: cozuldu
     });
+  }
+
+  /* Cevap verilince sahne yeniden çizilmiyor; ilerleme şeridini
+     yerinde güncelle. Aksi hâlde sol panel "1/4" derken üstteki
+     çubuk "0/8"de kalıyordu. Genişlik geçişi CSS'te tanımlı,
+     burada yalnızca hedef değer veriliyor. */
+  function ilerlemeTazele(soru) {
+    var sayfa = Limit.veri.soruSayfasi(soru.id);
+    if (!sayfa) return;
+    var ozet = Limit.veri.ozet(sayfa.brans);
+    var yuzde = ozet.toplam ? Math.round((ozet.cozulen / ozet.toplam) * 100) : 0;
+
+    var dolu = Y.sec('#ilerlemeDolu', sahne);
+    if (dolu) {
+      dolu.style.width = yuzde + '%';
+      dolu.setAttribute('data-bos', yuzde === 0 ? 'evet' : 'hayir');
+    }
+    var metin = Y.sec('.ilerleme__metin', sahne);
+    if (metin) {
+      metin.textContent = ozet.cozulen + '/' + ozet.toplam + ' çözüldü' +
+        (ozet.cozulen ? ' · %' + ozet.ilkDenemeYuzde + ' ilk denemede' : '');
+    }
   }
 
   function geriBildirimBas(soru, secim, dogruMu, sureSn, denemeSayisi) {

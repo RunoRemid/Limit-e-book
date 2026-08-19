@@ -135,6 +135,17 @@
   --koc-panel: 400px;
 
   --gecis: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Hareket ------------------------------------------------
+     Eğitim ürünü: hareket öğrenciyi yormamalı. Süreler kısa,
+     eğriler yumuşak, hiçbiri dikkat çekmek için değil geri bildirim
+     için var. Tümü prefers-reduced-motion ile kapanır. */
+  --sure-hizli: 120ms;   /* basma/bırakma */
+  --sure-orta:  180ms;   /* hover, renk geçişi */
+  --sure-gecis: 220ms;   /* kart girişi, panel */
+  --sure-olay:  300ms;   /* doğru/yanlış geri bildirimi */
+  --egri-yumusak: cubic-bezier(0.22, 0.61, 0.36, 1);   /* çıkışta yavaşlar */
+  --egri-cikis:   cubic-bezier(0.36, 0, 0.66, -0.24);  /* titreme için */
 }
 
 /* ------------------------------------------------------------- */

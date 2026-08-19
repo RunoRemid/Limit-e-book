@@ -1,0 +1,243 @@
+/* =============================================================
+   hareket.css — Etkileşim ve animasyon katmanı
+   -------------------------------------------------------------
+   Neden ayrı dosya: hareketin tamamı tek yerde toplu dursun ki
+   denetlenebilsin ve gerekirse tek satırla devre dışı bırakılsın.
+
+   İLKELER
+   · Bu bir eğitim ürünü. Hareket gösteri değil GERİ BİLDİRİM.
+     Öğrenci soruya bakıyor; hiçbir animasyon onu çağırmamalı.
+   · Yalnızca transform ve opacity canlandırılır — düzen kaymaz,
+     GPU dostudur. (Tek istisna ilerleme çubuğunun genişliği;
+     sabit yükseklikli bir kap içinde olduğu için çevresini
+     etkilemez.)
+   · Süreler tokens.css'ten gelir: 120-300ms bandı.
+   · prefers-reduced-motion: reduce → tümü kapanır (en altta).
+   ============================================================= */
+
+/* =============================================================
+   ÖNCELİK 1 — Mikro-etkileşimler
+   ============================================================= */
+
+/* --- Şık düğmeleri (A-E) ------------------------------------- */
+.sik {
+  position: relative;
+  overflow: hidden;            /* yaldız süpürmesi taşmasın */
+  transition:
+    transform      var(--sure-hizli) var(--egri-yumusak),
+    border-color   var(--sure-orta)  var(--egri-yumusak),
+    box-shadow     var(--sure-orta)  var(--egri-yumusak),
+    background-color var(--sure-orta) var(--egri-yumusak),
+    color          var(--sure-orta)  var(--egri-yumusak);
+}
+
+/* Hover: hafif yükselme + gümüş kenar vurgusu */
+.sik:hover:not([disabled]) {
+  transform: translateY(-2px);
+  border-color: var(--gumus-orta);
+  background: var(--yuzey);
+  color: var(--murekkep);
+  box-shadow:
+    0 6px 16px -8px rgba(36, 37, 42, 0.38),
+    inset 0 0 0 1px var(--gumus-acik);
+}
+
+/* Press: kısa scale-down, gölge geri çekilir */
+.sik:active:not([disabled]) {
+  transform: translateY(0) scale(0.97);
+  box-shadow: none;
+  transition-duration: var(--sure-hizli);
+}
+
+/* --- Doğru cevap --------------------------------------------
+   Yeşile yumuşak dolma + köşede beliren onay tiki. */
+.sik[data-sonuc="dogru"] {
+  animation: dogru-dol var(--sure-olay) var(--egri-yumusak) both;
+}
+@keyframes dogru-dol {
+  0%   { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(15, 138, 95, 0); }
+  55%  { transform: scale(1.015); box-shadow: 0 0 0 7px rgba(15, 138, 95, 0.10); }
+  100% { transform: scale(1);     box-shadow: 0 0 0 3px rgba(15, 138, 95, 0.16); }
+}
+
+.sik[data-sonuc="dogru"]::after {
+  content: "✓";
+  position: absolute;
+  top: 5px; right: 9px;
+  font-family: var(--yazi-govde);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--dogru);
+  animation: tik-belir 240ms var(--egri-yumusak) 90ms both;
+}
+@keyframes tik-belir {
+  from { opacity: 0; transform: scale(0.35) rotate(-14deg); }
+  to   { opacity: 1; transform: scale(1)    rotate(0deg); }
+}
+
+/* --- Yanlış cevap -------------------------------------------
+   Kısa ve nazik yatay titreme. Sert değil: genlik 4px'i geçmez. */
+.sik[data-sonuc="yanlis"] {
+  animation: sik-titre var(--sure-olay) ease-out both;
+}
+@keyframes sik-titre {
+  0%, 100% { transform: translateX(0); }
+  16%      { transform: translateX(-4px); }
+  32%      { transform: translateX(3px); }
+  48%      { transform: translateX(-2px); }
+  66%      { transform: translateX(2px); }
+  84%      { transform: translateX(-1px); }
+}
+
+/* --- Geri bildirim paneli: aşağıdan açılır -------------------- */
+.geribildirim[data-durum] {
+  animation: panel-ac var(--sure-gecis) var(--egri-yumusak) both;
+}
+@keyframes panel-ac {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Düğmeler: tutarlı mikro geri bildirim -------------------- */
+.dugme,
+.video-dugme,
+.serit__no,
+.yakinlik__dugme,
+.oneri {
+  transition:
+    transform      var(--sure-hizli) var(--egri-yumusak),
+    background-color var(--sure-orta) var(--egri-yumusak),
+    border-color   var(--sure-orta)  var(--egri-yumusak),
+    color          var(--sure-orta)  var(--egri-yumusak),
+    box-shadow     var(--sure-orta)  var(--egri-yumusak);
+}
+
+.dugme:hover:not([disabled]),
+.video-dugme:hover,
+.serit__no:hover,
+.oneri:hover {
+  transform: translateY(-1px);
+}
+
+.dugme:active:not([disabled]),
+.video-dugme:active,
+.serit__no:active,
+.yakinlik__dugme:active,
+.oneri:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: var(--sure-hizli);
+}
+
+/* Ana eylem basılınca gölgesi de çekilsin */
+.dugme--koc-yardim:active:not([disabled]) { box-shadow: none; }
+
+/* --- Odak: klavye kullanıcısı için net --------------------- */
+:focus-visible {
+  outline: 2px solid var(--kizil-yazi);
+  outline-offset: 3px;
+}
+.sik:focus-visible {
+  outline-offset: 2px;
+  box-shadow: var(--golge-odak);
+}
+/* Kızıl bar üzerinde odak halkası beyaz kalır (duzen.css ile uyumlu) */
+.ustbar :focus-visible { outline-color: #FFFFFF; }
+
+/* =============================================================
+   ÖNCELİK 2 — Geçişler
+   ============================================================= */
+
+/* --- Soru kartı girişi ---------------------------------------
+   YALNIZCA soru gerçekten değiştiğinde çalışır. Yakınlaştırma ya
+   da tam sayfa geçişi de kartı yeniden çizdiği için, sınıf JS'te
+   koşullu ekleniyor; aksi hâlde her zoom tıklamasında kart
+   yeniden "girer" ve rahatsız ederdi. */
+.kart--girer {
+  animation: kart-gir var(--sure-gecis) var(--egri-yumusak) both;
+}
+@keyframes kart-gir {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- İlerleme çubuğu ------------------------------------------
+   Genişlik canlandırılıyor; kap sabit yükseklikte olduğu için
+   çevresinde yeniden akış tetiklemez. */
+.ilerleme__dolu {
+  transition: width 520ms var(--egri-yumusak);
+}
+
+/* --- Konu paneli (dar ekranda çekmece) ------------------------ */
+.yanpanel {
+  transition: transform var(--sure-gecis) var(--egri-yumusak);
+}
+
+/* --- Kutular: koç ve video ------------------------------------ */
+.koc-kutusu[open],
+.video-kutusu[open],
+.ayar-kutusu[open] {
+  animation: kutu-ac var(--sure-gecis) var(--egri-yumusak) both;
+}
+@keyframes kutu-ac {
+  from { opacity: 0; transform: translateY(12px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* Koç balonları akışa yumuşak girer */
+.balon {
+  animation: balon-gir var(--sure-orta) var(--egri-yumusak) both;
+}
+@keyframes balon-gir {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =============================================================
+   ÖNCELİK 3 — Marka dokunuşu
+   Doğru cevapta tek seferlik, çok ince gümüş yaldız süpürmesi.
+   Konfeti değil: logodaki metalik faset dilinin karşılığı.
+   Toplam süre 720ms — brief'in 1sn sınırının altında.
+   ============================================================= */
+.sik[data-sonuc="dogru"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg,
+              transparent 34%,
+              rgba(255, 255, 255, 0.92) 50%,
+              transparent 66%);
+  transform: translateX(-130%);
+  animation: yaldiz-supur 720ms var(--egri-yumusak) 140ms 1 both;
+  pointer-events: none;
+}
+@keyframes yaldiz-supur {
+  to { transform: translateX(130%); }
+}
+
+/* =============================================================
+   HAREKET AZALTMA
+   tokens.css süreleri zaten sıfırlıyor; burada hareketin kendisi
+   de kapatılıyor: süpürme hiç çizilmez, dönüşümler nötrlenir.
+   ============================================================= */
+@media (prefers-reduced-motion: reduce) {
+  .sik[data-sonuc="dogru"]::before { display: none; }
+
+  .sik,
+  .dugme,
+  .video-dugme,
+  .serit__no,
+  .yakinlik__dugme,
+  .oneri,
+  .kart--girer,
+  .balon,
+  .koc-kutusu[open],
+  .video-kutusu[open],
+  .ayar-kutusu[open] {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .sik:hover:not([disabled]),
+  .dugme:hover:not([disabled]) { transform: none !important; }
+}
