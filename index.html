@@ -22,11 +22,18 @@
     <button class="dugme dugme--ikon" id="dugmeYanPanel" title="Konu panelini aç/kapat" aria-label="Konu paneli">☰</button>
 
     <div class="marka">
-      <span class="marka__logo" aria-hidden="true">L</span>
-      <span>
+      <!-- Logo dosyası yoksa kırık ikon yerine yedek amblem gösterilir;
+           dosyayı img/limit-logo.png olarak koyunca kendiliğinden devreye girer. -->
+      <img class="marka__logo" src="img/limit-logo.png" alt="Limit Yayınları"
+           onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+      <span class="marka__amblem" hidden aria-hidden="true">L</span>
+
+      <span class="marka__yazi">
         <span class="marka__ad">Limit Yayınları</span>
         <span class="marka__alt" id="markaAlt">TYT · AYT Sayısal</span>
       </span>
+
+      <span class="ornektir" title="Bu sürüm tanıtım amaçlı bir prototiptir; yayın sürümü değildir.">Örnektir</span>
     </div>
 
     <nav class="ustbar__branslar" id="bransSekmeleri" role="tablist" aria-label="Branşlar"></nav>

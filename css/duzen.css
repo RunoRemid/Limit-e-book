@@ -39,10 +39,24 @@
   gap: var(--bosluk-3);
   padding-right: var(--bosluk-4);
   border-right: 1px solid var(--cizgi);
-  height: 34px;
+  height: 40px;
+  flex: none;
 }
 
+/* Yayınevi logosu — yüksekliği menüye sabitlenir, genişlik oranla
+   türetilir. object-fit: contain, logonun en-boy oranı ne olursa
+   olsun ezilmesini/gerilmesini önler. */
 .marka__logo {
+  display: block;
+  height: 36px;
+  width: auto;
+  max-width: 150px;
+  object-fit: contain;
+  flex: none;
+}
+
+/* Logo dosyası yoksa devreye giren yedek amblem */
+.marka__amblem {
   display: grid;
   place-items: center;
   width: 34px; height: 34px;
@@ -52,6 +66,32 @@
   font-weight: 700;
   font-size: var(--olcek-lg);
   letter-spacing: -0.02em;
+  flex: none;
+}
+.marka__amblem[hidden] { display: none; }
+
+.marka__yazi { min-width: 0; }
+
+/* ------------------------------------------------------------- */
+/* "Örnektir" rozeti                                              */
+/* Yayınevi bunun bir prototip olduğunu ilk bakışta anlamalı;      */
+/* bu yüzden marka bloğunun içinde, adın hemen yanında duruyor.    */
+/* ------------------------------------------------------------- */
+.ornektir {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex: none;
+  color: #FFFFFF;
+  background: linear-gradient(135deg, var(--limit-kirmizi) 0%, #F26B21 100%);
+  box-shadow: 0 1px 3px rgba(200, 16, 46, 0.32);
 }
 
 .marka__ad {
@@ -127,6 +167,13 @@
 /* ------------------------------------------------------------- */
 @media (max-width: 1180px) {
   :root { --yan-panel: 250px; }
+}
+
+/* Dar ekranda marka yazısı düşer; logo ve "Örnektir" rozeti kalır —
+   ikisi de sunumda görünmesi gereken unsurlar. */
+@media (max-width: 820px) {
+  .marka__yazi { display: none; }
+  .marka { padding-right: var(--bosluk-3); gap: var(--bosluk-2); }
 }
 
 @media (max-width: 900px) {
