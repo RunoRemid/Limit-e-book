@@ -256,15 +256,17 @@
       /* 5b) Analitik kancaları — arayüz katmanları analitiği bilmez,
              yalnızca olay yayınlar; bağlama burada yapılır. */
       Limit.olay.dinle('soru:cevaplandi', function (v) {
-        var alanlar = Limit.analitik.soruAlanlari(v.soru);
-        alanlar.secim = v.secim;
-        alanlar.dogru_mu = v.dogruMu;
-        alanlar.sure_sn = v.sureSn;
-        var kayit = Limit.depo.ilerlemeAl(v.soru.id);
-        alanlar.ipucu_kademe = kayit ? kayit.ipucuKademe : 0;
-        /* Sınırsız deneme: kaçıncı deneme olduğu ve çözüldü mü bilgisi
-           ekstra alanında taşınır — şema değişikliği gerekmez. */
-        alanlar.ekstra = { deneme_no: v.denemeNo, cozuldu: !!v.cozuldu };
+        /* Tek kayıt, iki hedef: önce YEREL günlük (panelin birincil
+           kaynağı, ağ olmadan da dolu), sonra Supabase (varsa). */
+        var kayit = Limit.analitik.denemeKaydi(v);
+
+        Limit.depo.denemeEkle(kayit);
+
+        var ilerleme = Limit.depo.ilerlemeAl(v.soru.id);
+        var alanlar = Object.assign({}, kayit, {
+          ipucu_kademe: ilerleme ? ilerleme.ipucuKademe : 0,
+          ekstra: { cozuldu: !!v.cozuldu }
+        });
         Limit.analitik.olay('soru_cevap', alanlar);
       });
 
@@ -312,6 +314,7 @@
         var a = adresOku();
         if (a.soruId && a.soruId !== Limit.depo.al().aktifSoruId) Limit.uygulama.soruAc(a.soruId);
       });
+
 
 
       console.info('[Limit] Sayısal demo hazır · sürüm ' + Limit.surum +

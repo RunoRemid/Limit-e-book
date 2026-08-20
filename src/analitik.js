@@ -58,6 +58,23 @@
     });
   }
 
+  /* Supabase istek başlıkları.
+     X-Oturum: okuma politikası bu başlığa bakar. Sunucu tarafındaki
+     RLS, satırdaki oturum ile bu değeri karşılaştırır; başlık yoksa
+     hiçbir satır dönmez (başarısız-kapanır).
+     ⚠ Bu başlık istemciden gelir, sunucu doğrulamaz — toplu dökümü
+     engeller ama gerçek kimlik doğrulama değildir. Ayrıntı README'de. */
+  function basliklar(ek) {
+    var b = {
+      'Content-Type': 'application/json',
+      'apikey': ayar.supabaseAnonKey,
+      'Authorization': 'Bearer ' + ayar.supabaseAnonKey,
+      'X-Oturum': oturum
+    };
+    if (ek) Object.keys(ek).forEach(function (a) { b[a] = ek[a]; });
+    return b;
+  }
+
   /* ----------------------------------------------------------- */
   function kuyrugaEkle(kayit) {
     var depo = yerelOku();
@@ -84,23 +101,33 @@
 
     return fetch(ayar.supabaseUrl.replace(/\/+$/, '') + '/rest/v1/limit_olay', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': ayar.supabaseAnonKey,
-        'Authorization': 'Bearer ' + ayar.supabaseAnonKey,
-        /* Gövde döndürme — yanıtı küçük tut */
-        'Prefer': 'return=minimal'
-      },
+      headers: basliklar({ 'Prefer': 'return=minimal' }),
       body: JSON.stringify(toplu),
       keepalive: true            /* sekme kapanırken de gitsin */
     }).then(function (y) {
-      if (!y.ok) throw new Error('Supabase ' + y.status);
-      /* Yalnızca gönderilenleri kuyruktan düş — arada yeni olay
-         eklenmiş olabilir, tümünü silmek veri kaybettirir. */
-      var guncel = yerelOku();
-      guncel.kuyruk = guncel.kuyruk.slice(toplu.length);
-      yerelYaz(guncel);
-      return true;
+      if (y.ok) {
+        /* Yalnızca gönderilenleri kuyruktan düş — arada yeni olay
+           eklenmiş olabilir, tümünü silmek veri kaybettirir. */
+        var guncel = yerelOku();
+        guncel.kuyruk = guncel.kuyruk.slice(toplu.length);
+        yerelYaz(guncel);
+        return true;
+      }
+
+      /* KALICI hata (400-499, 429 hariç): şema uyuşmuyor ya da
+         anahtar geçersiz. Yeniden denemek asla başarmaz; kuyrukta
+         tutmak sonsuza kadar birikmeye yol açar. Partiyi düşür. */
+      if (y.status >= 400 && y.status < 500 && y.status !== 429) {
+        return y.text().catch(function () { return ''; }).then(function (detay) {
+          console.warn('[Limit analitik] kalıcı hata ' + y.status +
+                       ', bu parti düşürüldü. Şema güncel mi? ' + detay.slice(0, 200));
+          var g = yerelOku();
+          g.kuyruk = g.kuyruk.slice(toplu.length);
+          yerelYaz(g);
+          return false;
+        });
+      }
+      throw new Error('Supabase ' + y.status);
     }).catch(function (h) {
       console.debug('[Limit analitik] gönderilemedi, kuyrukta bekliyor:', h.message);
       return false;
@@ -153,6 +180,8 @@
       if (!acik) return;
       veri = veri || {};
 
+      function ya(deger) { return deger === undefined ? null : deger; }
+
       kuyrugaEkle({
         oturum: oturum,
         kurum: ayar.kurum || 'limit-demo',
@@ -160,11 +189,19 @@
         brans: veri.brans || null,
         sayfa_id: veri.sayfa_id || null,
         soru_id: veri.soru_id || null,
-        soru_no: veri.soru_no === undefined ? null : veri.soru_no,
+        soru_no: ya(veri.soru_no),
+        /* v2 alanları — konu bazlı analiz ve çeldirici analizi için */
+        konu: veri.konu || null,
+        unite: veri.unite || null,
+        zorluk: ya(veri.zorluk),
+        dogru_sik: veri.dogru_sik || null,
+        deneme_no: ya(veri.deneme_no),
+        ilk_denemede: ya(veri.ilk_denemede),
+        koc_yardimi: ya(veri.koc_yardimi),
         secim: veri.secim || null,
-        dogru_mu: veri.dogru_mu === undefined ? null : veri.dogru_mu,
-        sure_sn: veri.sure_sn === undefined ? null : veri.sure_sn,
-        ipucu_kademe: veri.ipucu_kademe === undefined ? null : veri.ipucu_kademe,
+        dogru_mu: ya(veri.dogru_mu),
+        sure_sn: ya(veri.sure_sn),
+        ipucu_kademe: ya(veri.ipucu_kademe),
         anahtar_kaynagi: veri.anahtar_kaynagi || null,
         ekstra: veri.ekstra || null
       });
@@ -180,8 +217,39 @@
         sayfa_id: sayfa.id,
         soru_id: soru.id,
         soru_no: soru.no,
+        konu: sayfa.konu || null,
+        unite: sayfa.unite || null,
+        zorluk: soru.zorluk === undefined ? null : soru.zorluk,
         anahtar_kaynagi: soru.anahtarKaynagi
       };
+    },
+
+    /**
+     * Bir şık işaretlemesinden tam deneme kaydı üretir.
+     * Hem yerel günlüğe hem Supabase'e aynı alan kümesi gider;
+     * panelin iki kaynağı da aynı biçimde okuyabilmesi için.
+     * @param {Object} v  'soru:cevaplandi' olayının verisi
+     */
+    denemeKaydi: function (v) {
+      var soru = v.soru;
+      var alanlar = this.soruAlanlari(soru);
+      var ilerleme = Limit.depo.ilerlemeAl(soru.id) || {};
+      var kademe = ilerleme.ipucuKademe || 0;
+
+      alanlar.oturum = oturum;
+      alanlar.zaman = Limit.yrd.simdi();
+      alanlar.secim = v.secim;
+      /* Doğru şık kaydediliyor: çeldirici analizi bunsuz yapılamaz. */
+      alanlar.dogru_sik = soru.dogru || null;
+      alanlar.dogru_mu = v.dogruMu;
+      alanlar.sure_sn = v.sureSn;
+      alanlar.deneme_no = v.denemeNo || 1;
+      /* "İlk denemede" yalnızca DOĞRU bulunduğunda anlamlıdır;
+         yanlış denemelerde null bırakılır ki oranlar bozulmasın. */
+      alanlar.ilk_denemede = v.dogruMu === true ? (v.denemeNo === 1) : null;
+      alanlar.koc_yardimi = kademe > 0;
+
+      return alanlar;
     },
 
     bosalt: bosalt

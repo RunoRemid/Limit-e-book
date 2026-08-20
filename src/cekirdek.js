@@ -11,6 +11,7 @@
 
   Limit.surum = '0.5.0-demo';
   Limit.DEPO_ANAHTARI = 'limit.sayisal.demo.v1';
+  Limit.DENEME_TAVANI = 500;   /* yerel deneme günlüğünde tutulan kayıt sayısı */
 
   /* ===========================================================
      1) Yardımcılar
@@ -166,6 +167,12 @@
     ilerleme: {},
     // koç oturumları: sohbet[soruId] = [{rol:'koc'|'ogrenci', metin, zaman}]
     sohbet: {},
+    /* Deneme günlüğü — istatistik panelinin BİRİNCİL kaynağı.
+       ilerleme[] yalnızca "hangi harfler denendi"yi tutuyor; panel
+       için her denemenin zamanı, süresi ve bağlamı gerekiyor.
+       Yerel öncelikli mimari: panel ağ olmadan da bu günlükten
+       dolar, Supabase yalnızca cihazlar arası zenginleştirmedir. */
+    denemeGunlugu: [],
     ayarlar: {
       aiSaglayici: 'yerel',   // 'yerel' | 'uzak'
       aiUcNokta: '',          // uzak modda proxy adresi
@@ -228,6 +235,31 @@
 
       ilerlemeAl: function (soruId) {
         return durum.ilerleme[soruId] || null;
+      },
+
+      /* --- Deneme günlüğü ------------------------------------
+         Her şık işaretlemesi bir satır. Tavan aşılınca en eski
+         kayıtlar düşer; localStorage kotasını koruyoruz.
+         ~500 kayıt × ~200 bayt ≈ 100 KB, güvenli aralık. */
+      denemeEkle: function (kayit) {
+        var g = durum.denemeGunlugu || (durum.denemeGunlugu = []);
+        g.push(kayit);
+        if (g.length > Limit.DENEME_TAVANI) {
+          g.splice(0, g.length - Limit.DENEME_TAVANI);
+        }
+        kaydet();
+        Limit.olay.yayinla('deneme:eklendi', kayit);
+        return kayit;
+      },
+
+      denemeGunlugu: function () {
+        return (durum.denemeGunlugu || []).slice();
+      },
+
+      denemeGunluguSil: function () {
+        durum.denemeGunlugu = [];
+        kaydet();
+        Limit.olay.yayinla('durum:degisti', durum);
       },
 
       /* Koç sohbet geçmişi */

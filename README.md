@@ -390,6 +390,30 @@ canlı kip devrededir. Konsolda `[Limit analitik] açık · oturum ...` satırı
 
 ---
 
+### ⚠ Okuma politikası gerçek güvenlik DEĞİLDİR
+
+İstatistik paneli için `limit_olay` tablosuna bir SELECT politikası eklendi
+(`20260820090000_limit_analitik_v2.sql`). İstemci kendi oturum kimliğini `X-Oturum`
+başlığında gönderir, politika bunu satırdaki `oturum` ile karşılaştırır.
+
+**Bunu "öğrenci yalnızca kendi verisini görür" diye sunmayın.** Doğrusu:
+
+| | |
+|---|---|
+| **Engeller** | Toplu dökümü. Başlıksız istek **0 satır** döner (başarısız-kapanır); kimse `select *` ile tabloyu boşaltamaz. |
+| **Engellemez** | Hedefli okumayı. Bir oturum UUID'sini ele geçiren kişi o oturumun verisini okuyabilir — başlık istemciden gelir, sunucu doğrulamaz. |
+
+Bu, kriptografik kimlik değil **belirsizliktir**. Şu an toplanan veride kişisel
+tanımlayıcı yok (ad, e-posta, IP toplanmıyor; oturum rastgele bir UUID) ve bu yüzden
+demo ölçeğinde kabul edilebilir.
+
+**Kişisel veri eklenirse bu yaklaşım yetersizdir.** O noktada Supabase Anonymous Auth'a
+geçilmeli ve politika `auth.uid()` üzerine kurulmalıdır.
+
+> Politikanın başarısız-kapandığı varsayılmadı, sınandı: geri alınan bir işlem içinde
+> politika kurulup `anon` rolüne geçildi ve başlık yokken okunan satır sayısının **0**
+> olduğu doğrulandı.
+
 ### Analitik: ne toplanıyor, kim okuyabiliyor?
 
 Kişisel veri toplanmaz — ad, e-posta, IP yok. Yalnızca rastgele bir oturum kimliği üretilir.

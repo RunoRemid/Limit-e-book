@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8"><title>Limit · Deneme Günlüğü Koşumu</title></head><body>
+<div id="bildirimAlani"></div>
+<h1 style="font:600 20px system-ui">Aşama 1 · Yerel deneme günlüğü</h1>
+<pre id="sonuc" style="font:13px ui-monospace,Consolas,monospace;line-height:1.7">çalışıyor…</pre>
+
+<script src="../yapilandirma.js"></script>
+<script src="../data/veri.js"></script>
+<script src="../src/cekirdek.js"></script>
+<script src="../src/veri-servis.js"></script>
+<script src="../src/analitik.js"></script>
+<script src="../src/ai-sokratik.js"></script>
+<script>
+(function () {
+  var cikti = [], sayac = 0;
+  function kontrol(ad, kosul) { sayac++; cikti.push((kosul ? 'GECTI  ' : 'KALDI  ') + ad); }
+
+  Limit.veri.baglat();
+  Limit.analitik.baglat();
+
+  /* Temiz baslangic */
+  Limit.depo.denemeGunluguSil();
+  kontrol('gunluk bos baslatildi', Limit.depo.denemeGunlugu().length === 0);
+
+  /* --- Birkac soru cozulmus gibi davran ------------------------
+     Gercek akisin yaydigi olayin ayni bicimi kullaniliyor. */
+  function denemeYap(soruId, secim, denemeNo, sureSn, kademe) {
+    var soru = Limit.veri.soru(soruId);
+    if (kademe) Limit.depo.ilerlemeYaz(soruId, { ipucuKademe: kademe }, true);
+    var v = {
+      soru: soru,
+      secim: secim,
+      dogruMu: soru.dogru ? (secim === soru.dogru) : null,
+      sureSn: sureSn,
+      denemeNo: denemeNo,
+      cozuldu: soru.dogru ? (secim === soru.dogru) : false
+    };
+    var kayit = Limit.analitik.denemeKaydi(v);
+    Limit.depo.denemeEkle(kayit);
+    return kayit;
+  }
+
+  /* FIZ-T3-S3 dogru sik D · once yanlis sonra dogru */
+  var y1 = denemeYap('FIZ-T3-S3', 'A', 1, 34, 0);
+  var d1 = denemeYap('FIZ-T3-S3', 'D', 2, 61, 0);
+  /* KIM-T6-S7 dogru sik C · ilk denemede, kocla */
+  var d2 = denemeYap('KIM-T6-S7', 'C', 1, 88, 2);
+  /* MAT-T6-S10 dogru sik C · ilk denemede, kocsuz */
+  var d3 = denemeYap('MAT-T6-S10', 'C', 1, 45, 0);
+
+  kontrol('4 deneme gunluge yazildi', Limit.depo.denemeGunlugu().length === 4);
+
+  /* --- Alan butunlugu ---------------------------------------- */
+  var gerekli = ['oturum','zaman','soru_id','sayfa_id','brans','konu','unite','soru_no',
+                 'zorluk','secim','dogru_sik','dogru_mu','sure_sn','deneme_no',
+                 'ilk_denemede','koc_yardimi','anahtar_kaynagi'];
+  kontrol('tum zorunlu alanlar var',
+    gerekli.every(function (a) { return a in d1; }));
+
+  kontrol('konu adi yaziliyor', d1.konu === 'Vektörler - III');
+  kontrol('unite yaziliyor', typeof d1.unite === 'string' && d1.unite.length > 3);
+  kontrol('zorluk yaziliyor', d1.zorluk >= 1 && d1.zorluk <= 3);
+  kontrol('dogru sik yaziliyor (celdirici analizi icin)', d1.dogru_sik === 'D');
+  kontrol('zaman damgasi ISO', /^\d{4}-\d{2}-\d{2}T/.test(d1.zaman));
+  kontrol('oturum kimligi UUID', /^[0-9a-f-]{36}$/i.test(d1.oturum));
+  kontrol('tum kayitlarda ayni oturum',
+    Limit.depo.denemeGunlugu().every(function (k) { return k.oturum === d1.oturum; }));
+
+  /* --- Deneme mantigi ---------------------------------------- */
+  kontrol('yanlis deneme dogru_mu=false', y1.dogru_mu === false);
+  kontrol('yanlis denemede ilk_denemede NULL (oran bozulmasin)', y1.ilk_denemede === null);
+  kontrol('2. denemede dogru → ilk_denemede=false', d1.ilk_denemede === false);
+  kontrol('1. denemede dogru → ilk_denemede=true', d3.ilk_denemede === true);
+  kontrol('deneme_no artiyor', y1.deneme_no === 1 && d1.deneme_no === 2);
+  kontrol('koc yardimi alinmissa true', d2.koc_yardimi === true);
+  kontrol('koc yardimi alinmamissa false', d3.koc_yardimi === false);
+  kontrol('sure saniye olarak kaydedildi', d1.sure_sn === 61);
+
+  /* --- Panelin ihtiyac duydugu turetmeler --------------------- */
+  var g = Limit.depo.denemeGunlugu();
+  var cozumler = g.filter(function (k) { return k.dogru_mu === true; });
+  kontrol('cozulen soru sayisi turetilebilir', cozumler.length === 3);
+
+  var ilkDenemede = cozumler.filter(function (k) { return k.ilk_denemede === true; }).length;
+  kontrol('ilk denemede oran turetilebilir',
+    Math.round(100 * ilkDenemede / cozumler.length) === 67);
+
+  var konular = {};
+  g.forEach(function (k) { konular[k.konu] = true; });
+  kontrol('konu bazinda gruplanabilir', Object.keys(konular).length === 3);
+
+  var yanlislar = g.filter(function (k) { return k.dogru_mu === false; });
+  kontrol('celdirici analizi icin veri var',
+    yanlislar.length === 1 && yanlislar[0].secim === 'A' && yanlislar[0].dogru_sik === 'D');
+
+  /* --- Tavan ------------------------------------------------- */
+  kontrol('tavan tanimli', Limit.DENEME_TAVANI === 500);
+  for (var i = 0; i < 520; i++) denemeYap('MAT-T6-S10', 'C', 1, 30, 0);
+  kontrol('tavan asilinca eski kayitlar dusuyor',
+    Limit.depo.denemeGunlugu().length === 500);
+
+  /* --- Kaliciligi dogrula ------------------------------------
+     Depo yazimi 220ms geciktirmelidir (debounce); esanli kontrol
+     erken kalir. Debounce'un gecmesini bekliyoruz. */
+  setTimeout(function () {
+    var ham = window.localStorage.getItem(Limit.DEPO_ANAHTARI);
+    kontrol('gunluk localStorage a yaziliyor (debounce sonrasi)',
+      !!ham && ham.indexOf('denemeGunlugu') > -1);
+
+    var cozumlendi = null;
+    try { cozumlendi = JSON.parse(ham); } catch (h) {}
+    kontrol('diskteki gunluk okunabilir ve dolu',
+      !!cozumlendi && Array.isArray(cozumlendi.denemeGunlugu) &&
+      cozumlendi.denemeGunlugu.length === 500);
+
+    /* Temizlik: koşum kendi verisini birakmasin */
+    Limit.depo.denemeGunluguSil();
+    kontrol('temizlik yapildi', Limit.depo.denemeGunlugu().length === 0);
+
+    var kaldi = cikti.filter(function (c) { return c.indexOf('KALDI') === 0; }).length;
+    cikti.push('');
+    cikti.push('TOPLAM: ' + sayac + ' kontrol · KALAN: ' + kaldi);
+    document.getElementById('sonuc').textContent = cikti.join('\n');
+  }, 400);
+})();
+</script>
+</body></html>
