@@ -10,6 +10,7 @@
 <script src="../src/veri-servis.js"></script>
 <script src="../src/analitik.js"></script>
 <script src="../src/ai-sokratik.js"></script>
+<script src="../src/demo-seti.js"></script>
 <script src="../src/istatistik.js"></script>
 <script>
 (function () {
@@ -82,9 +83,14 @@
   var cozumler = g.filter(function (k) { return k.dogru_mu === true; });
   kontrol('cozulen soru sayisi turetilebilir', cozumler.length === 3);
 
+  /* Uc cozumden yalnizca d3 sayilir: d1 ikinci denemede bulundu,
+     d2 ilk denemede AMA koc yardimiyla. Olcut istatistik.js ile
+     ayni: deneme_no = 1 VE koc_yardimi = false. */
   var ilkDenemede = cozumler.filter(function (k) { return k.ilk_denemede === true; }).length;
   kontrol('ilk denemede oran turetilebilir',
-    Math.round(100 * ilkDenemede / cozumler.length) === 67);
+    ilkDenemede === 1 && Math.round(100 * ilkDenemede / cozumler.length) === 33);
+  kontrol('koc yardimiyla ilk denemede dogru "ilk denemede" SAYILMAZ',
+    d2.deneme_no === 1 && d2.dogru_mu === true && d2.ilk_denemede === false);
 
   var konular = {};
   g.forEach(function (k) { konular[k.konu] = true; });
@@ -283,6 +289,119 @@
     ];
     kontrol('gelisim: gun siniri yerel saate gore ciziliyor',
       I.gelisim(geceGunluk).gunSayisi === 1);
+  })();
+
+  /* --- Sunum demo seti: ölçek ve profil ------------------------
+     Sunumda panelin dolu görünmesi bu setin ölçeğine bağlı. Bir
+     kayıt silinirse ya da bir eşik kayarsa panel sessizce "yeterli
+     veri yok" durumuna düşer; bu kontroller onu yakalar. */
+  (function () {
+    var I = Limit.istatistik;
+    var oncekiGunlukUzunlugu = Limit.depo.denemeGunlugu().length;
+    var D = Limit.demoSeti.uret();
+
+    /* --- Ölçek ------------------------------------------------ */
+    var o = I.ozet(D);
+    kontrol('demo: en az 50 soru denenmis', o.denenenSoru >= 50);
+    kontrol('demo: toplam deneme sayisi soru sayisindan fazla',
+      D.length > o.denenenSoru);
+
+    var konular = I.konular(D);
+    kontrol('demo: en az 8 farkli konu', konular.length >= 8);
+
+    var gl = I.gelisim(D);
+    kontrol('demo: en az 10 gune yayilmis', gl.gunSayisi >= 10);
+    kontrol('demo: trend cizilebilir', gl.yeterli === true);
+
+    /* Panel hicbir yerde "yeterli veri yok" dememeli */
+    kontrol('demo: panel esigi asiliyor', o.yeterliVeri === true);
+    kontrol('demo: guclu ve odak konu adaylari var',
+      !!o.gucluKonu && !!o.odakKonu);
+
+    /* --- Konu adlari uydurulmamis -----------------------------
+       Set gercek soru kimlikleri uzerinden uretildigi icin konu
+       adlari data/veri.js'ten gelmeli; elle yazilmis bir ad
+       buraya sizarsa yakalanir. */
+    var gercekKonular = {};
+    window.LimitVeri.sayfalar.forEach(function (s) { gercekKonular[s.konu] = true; });
+    kontrol('demo: tum konu adlari data/veri.js ten geliyor',
+      konular.every(function (k) { return gercekKonular[k.konu] === true; }));
+
+    /* --- Profil: dort bolge de dolu --------------------------- */
+    var hi = I.hizIsabet(D);
+    var bolgeler = {};
+    hi.noktalar.forEach(function (n) { bolgeler[n.bolge] = (bolgeler[n.bolge] || 0) + 1; });
+    kontrol('demo: hiz-isabet DORT bolgede de konu var',
+      !!bolgeler.guclu && !!bolgeler.acele && !!bolgeler.yavas && !!bolgeler.kavram);
+    kontrol('demo: esik ogrencinin kendi ortancasindan',
+      hi.yontem === 'ortanca');
+
+    /* Konular tek bir kumede toplanmasin: hem cok hizli hem cok
+       yavas konu olmali ki harita duz bir satir gibi gorunmesin. */
+    var sureler = hi.noktalar.map(function (n) { return n.sure; });
+    kontrol('demo: sureler cesitli (en yavas >= en hizlinin 3 kati)',
+      Math.max.apply(null, sureler) >= 3 * Math.min.apply(null, sureler));
+    var isabetler = hi.noktalar.map(function (n) { return n.isabet; });
+    kontrol('demo: isabet cesitli (en az %60 aralik)',
+      Math.max.apply(null, isabetler) - Math.min.apply(null, isabetler) >= 60);
+
+    /* --- Profil: zaman icinde yukari egilim ------------------- */
+    kontrol('demo: son gun ilk gunden daha isabetli',
+      gl.sonGun.ilkDenemeYuzde > gl.ilkGun.ilkDenemeYuzde);
+    kontrol('demo: son gun ilk gunden daha hizli',
+      gl.sonGun.ortalamaSure < gl.ilkGun.ortalamaSure);
+    /* Duz bir dogru degil, gurultulu olmali: en az bir gun bir
+       oncekinden daha kotu olsun. */
+    kontrol('demo: egri duz degil, inisli cikisli',
+      gl.gunler.some(function (g, i) {
+        return i > 0 && g.ilkDenemeYuzde < gl.gunler[i - 1].ilkDenemeYuzde;
+      }));
+
+    /* Her gunde yeterli calisma olsun; aksi halde grafikteki her
+       nokta "az veri" ucgeniyle isaretlenir ve sunum zayif gorunur. */
+    kontrol('demo: hicbir gun az-veri isaretli degil',
+      gl.gunler.every(function (g) { return g.azVeri === false; }));
+
+    /* --- Alan tutarliligi ------------------------------------- */
+    kontrol('demo: sureler makul aralikta (20-300 sn)',
+      D.every(function (k) { return k.sure_sn >= 20 && k.sure_sn <= 300; }));
+    kontrol('demo: deneme_no 1 den basliyor ve artiyor',
+      (function () {
+        var sayac = {};
+        return D.every(function (k) {
+          sayac[k.soru_id] = (sayac[k.soru_id] || 0) + 1;
+          return k.deneme_no === sayac[k.soru_id];
+        });
+      })());
+    kontrol('demo: yanlis denemede ilk_denemede NULL',
+      D.every(function (k) {
+        return k.dogru_mu === true || k.ilk_denemede === null;
+      }));
+    kontrol('demo: koc yardimiyla dogru bulan ilk_denemede sayilmiyor',
+      D.every(function (k) {
+        return !(k.dogru_mu === true && k.koc_yardimi === true &&
+                 k.ilk_denemede === true);
+      }));
+    /* Kayittaki ilk_denemede alani ile panelin turettigi olcut
+       ayni tanimi kullanmali. */
+    kontrol('demo: ilk_denemede alani panel olcutuyle ortusuyor',
+      D.filter(function (k) { return k.ilk_denemede === true; }).length ===
+      o.ilkDenemedeSoru);
+
+    /* Uc kip de temsil edilsin: yardimsiz ilk deneme, yardimsiz
+       israr, koc yardimi. */
+    kontrol('demo: koc yardimi alinan denemeler var',
+      D.some(function (k) { return k.koc_yardimi === true; }));
+    kontrol('demo: koc yardimi ALINMAYAN cok denemeli cozumler var',
+      D.some(function (k) {
+        return k.deneme_no > 1 && k.dogru_mu === true && k.koc_yardimi === false;
+      }));
+    kontrol('demo: cozulemeyen sorular var (bar grafigi ucuncu dilim)',
+      o.cozulenSoru < o.denenenSoru);
+
+    /* --- Depoya dokunmuyor ------------------------------------ */
+    kontrol('demo: uret() depoya hicbir sey yazmiyor',
+      Limit.depo.denemeGunlugu().length === oncekiGunlukUzunlugu);
   })();
   /* --- Kaliciligi dogrula ------------------------------------
      Depo yazimi 220ms geciktirmelidir (debounce); esanli kontrol

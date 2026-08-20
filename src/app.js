@@ -363,41 +363,15 @@
          Sunumda paneli canlı göstermek için; beş soru çözmeyi
          beklemeye gerek kalmaz.
 
-         ⚠ Bu ÖRNEK veridir, gerçek kullanım değildir. Panelde
-         bunu söyleyen görünür bir şerit çıkar (istatistikOrnekVeri);
-         izleyici gerçek öğrenci verisi sanmasın.
+         Kayıtlar BELLEKTE durur (Limit.demoVeri); localStorage'a ve
+         öğrencinin gerçek günlüğüne dokunulmaz. Setin kendisi ve
+         hangi öğrenci profilini anlattığı src/demo-seti.js'te.
+
          Parametre verilmezse tek satırı bile çalışmaz.            */
       (function () {
         if (global.location.search.indexOf('demo=1') === -1) return;
         Limit.istatistikOrnekVeri = true;
-        /* Örnek kayıtlar BELLEKTE toplanır; localStorage'a ve
-           öğrencinin gerçek günlüğüne dokunulmaz. */
-        Limit.demoVeri = [];
-        var t0 = Date.now() - 6 * 864e5;
-        function ek(soruId, secim, denemeNo, sure, koc, gunOfset) {
-          var soru = Limit.veri.soru(soruId); if (!soru) return;
-          var kayit = Limit.analitik.denemeKaydi({
-            soru: soru, secim: secim,
-            dogruMu: secim === soru.dogru,
-            sureSn: sure, denemeNo: denemeNo,
-            cozuldu: secim === soru.dogru
-          });
-          if (koc) kayit.koc_yardimi = true;
-          kayit.zaman = new Date(t0 + gunOfset * 864e5).toISOString();
-          Limit.demoVeri.push(kayit);
-        }
-        /* Vektörler: güçlü — çoğu ilk denemede */
-        ek('FIZ-T2-S5','B',1,52,false,0); ek('FIZ-T2-S6','C',1,61,false,0);
-        ek('FIZ-T2-S7','C',1,44,false,1); ek('FIZ-T2-S8','A',1,70,false,1);
-        ek('FIZ-T2-S8','C',2,96,false,1);
-        /* Doğruda Açı: odak alanı — çok deneme, koç yardımı */
-        ek('GEO-T4-S7','A',1,88,false,2); ek('GEO-T4-S7','C',2,140,true,2);
-        ek('GEO-T4-S7','D',3,190,true,2); ek('GEO-T4-S8','B',1,75,false,3);
-        ek('GEO-T4-S8','E',2,130,true,3); ek('GEO-T4-S9','C',1,66,false,4);
-        ek('GEO-T4-S9','E',2,118,true,4);
-        /* Periyodik: orta */
-        ek('KIM-T6-S5','E',1,58,false,5); ek('KIM-T6-S6','B',1,49,false,5);
-        ek('KIM-T6-S6','E',2,90,false,5); ek('KIM-T6-S7','C',1,72,true,6);
+        Limit.demoVeri = Limit.demoSeti.uret();
         Limit.depo.guncelle({ gorunum: 'istatistik' }, true);
         adresYaz(); istatistikDugmesiTazele(); Limit.sahne.ciz();
       })();

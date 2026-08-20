@@ -245,8 +245,15 @@
       alanlar.sure_sn = v.sureSn;
       alanlar.deneme_no = v.denemeNo || 1;
       /* "İlk denemede" yalnızca DOĞRU bulunduğunda anlamlıdır;
-         yanlış denemelerde null bırakılır ki oranlar bozulmasın. */
-      alanlar.ilk_denemede = v.dogruMu === true ? (v.denemeNo === 1) : null;
+         yanlış denemelerde null bırakılır ki oranlar bozulmasın.
+
+         Tanım src/istatistik.js ile BİREBİR aynı olmalı:
+         deneme_no = 1 VE koc_yardimi = false. Daha önce burada
+         yalnızca deneme_no'ya bakılıyordu; ipucu alıp ilk seferde
+         doğru bulan öğrenci sunucu günlüğünde "ilk denemede" görünüp
+         paneldeki orandan düşüyor, iki kayıt birbirini tutmuyordu. */
+      alanlar.ilk_denemede =
+        v.dogruMu === true ? (v.denemeNo === 1 && kademe === 0) : null;
       alanlar.koc_yardimi = kademe > 0;
 
       return alanlar;

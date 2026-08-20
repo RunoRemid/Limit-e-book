@@ -90,29 +90,47 @@
     C.defaults.plugins.legend.display = false;
   }
 
-  /* Bar uçlarına sayı yazan küçük eklenti — renge bağlı kalmamak için. */
+  /* Dolgunun üstüne yazılan sayı dolguya göre siyah ya da beyaz
+     olmalı; tek bir gri her dolguda okunmuyordu (yeşil ve kızıl
+     barda sayı neredeyse görünmezdi). Soluk dolgular beyaz zeminle
+     harmanlanır, o yüzden alfa hesaba katılır. */
+  function okunurRenk(zemin) {
+    var m = /^#?([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(String(zemin || '').trim());
+    if (!m) return renkler().metin;
+
+    var alfa = m[2] ? parseInt(m[2], 16) / 255 : 1;
+    function kanal(bas) {
+      var d = parseInt(m[1].slice(bas, bas + 2), 16);
+      return d * alfa + 255 * (1 - alfa);       /* beyaz zeminle harman */
+    }
+    var parlaklik = 0.299 * kanal(0) + 0.587 * kanal(2) + 0.114 * kanal(4);
+    return parlaklik > 150 ? renkler().murekkep : '#FFFFFF';
+  }
+
+  /* Bar içine sayı yazan küçük eklenti — okuma renge bağlı kalmasın. */
   var sayiEklentisi = {
     id: 'ucSayilari',
     afterDatasetsDraw: function (grafik, arg, secenek) {
       if (!secenek || secenek.acik === false) return;
       var ctx = grafik.ctx;
-      var r = renkler();
       ctx.save();
       ctx.font = '600 11px ' + (global.Chart.defaults.font.family);
-      ctx.fillStyle = r.metin;
       ctx.textBaseline = 'middle';
 
       grafik.data.datasets.forEach(function (veriSeti, i) {
         var meta = grafik.getDatasetMeta(i);
         if (meta.hidden) return;
+        var zemin = veriSeti.backgroundColor;
+
         meta.data.forEach(function (nokta, j) {
           var deger = veriSeti.data[j];
           if (!deger) return;                       /* 0 yazma */
           var yatay = grafik.options.indexAxis === 'y';
-          ctx.textAlign = yatay ? 'center' : 'center';
+          ctx.textAlign = 'center';
           var x = yatay ? nokta.x - (nokta.width || 0) / 2 : nokta.x;
           var y = yatay ? nokta.y : nokta.y - 9;
           if (yatay && (nokta.width || 0) < 18) return;  /* sığmıyorsa yazma */
+          ctx.fillStyle = okunurRenk(Array.isArray(zemin) ? zemin[j] : zemin);
           ctx.fillText(String(deger), x, y);
         });
       });
@@ -134,6 +152,25 @@
   /* ----------------------------------------------------------- */
   function etiket(k) {
     return k.yeterliOrneklem ? k.konu : k.konu + ' (az veri)';
+  }
+
+  /* "Canlıların Temel Bileşenleri - III" gibi uzun adlar eksende
+     soldan kırpılıyordu. Chart.js dizi verilen etiketi iki satıra
+     yayar; ad KISALTILMAZ, yalnızca sarılır. */
+  var ETIKET_SINIRI = 24;
+  function etiketSatirlari(k) {
+    var ad = etiket(k);
+    if (ad.length <= ETIKET_SINIRI) return ad;
+
+    var ust = '', alt = '';
+    ad.split(' ').forEach(function (kelime) {
+      if (!alt && (ust ? ust + ' ' + kelime : kelime).length <= ETIKET_SINIRI) {
+        ust = ust ? ust + ' ' + kelime : kelime;
+      } else {
+        alt = alt ? alt + ' ' + kelime : kelime;
+      }
+    });
+    return alt ? [ust, alt] : ust;
   }
 
   /* Yetersiz örneklemli konu soluk çizilir: sıfır gibi görünmesin,
@@ -224,14 +261,14 @@
       return govde;
     }
 
-    var kap = tuval(Math.max(160, konular.length * 46 + 40));
+    var kap = tuval(Math.max(160, konular.length * 52 + 40));
     govde.appendChild(kap);
 
     setTimeout(function () {
       ciz(kap, {
         type: 'bar',
         data: {
-          labels: konular.map(etiket),
+          labels: konular.map(etiketSatirlari),
           datasets: [
             { label: 'İlk denemede doğru', data: konular.map(function (k) { return k.ilkDenemede; }),
               backgroundColor: konular.map(function (k) { return saydam(r.hakimiyet, k); }) },
@@ -327,6 +364,8 @@
       ciz(kap, {
         type: 'doughnut',
         data: {
+          /* Halkada etiket yalnızca tooltip'te görünür; sarmak
+             yerine tek satır kalsın. */
           labels: veri.map(etiket),
           datasets: [{
             data: veri.map(function (k) { return k.yanlisDeneme; }),
@@ -396,14 +435,14 @@
       return govde;
     }
 
-    var kap = tuval(Math.max(180, veri.length * 44 + 50));
+    var kap = tuval(Math.max(180, veri.length * 50 + 50));
     govde.appendChild(kap);
 
     setTimeout(function () {
       ciz(kap, {
         type: 'bar',
         data: {
-          labels: veri.map(etiket),
+          labels: veri.map(etiketSatirlari),
           datasets: [{
             label: 'Ortalama süre',
             data: veri.map(function (k) { return k.ortalamaSure; }),

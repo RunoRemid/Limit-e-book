@@ -9,7 +9,7 @@
 
   var Limit = global.Limit || (global.Limit = {});
 
-  Limit.surum = '0.6.0-demo';
+  Limit.surum = '0.7.0-demo';
   Limit.DEPO_ANAHTARI = 'limit.sayisal.demo.v1';
   Limit.DENEME_TAVANI = 500;   /* yerel deneme günlüğünde tutulan kayıt sayısı */
 

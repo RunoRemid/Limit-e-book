@@ -30,7 +30,7 @@ limit-sayisal-demo/
 │   └── sorular/            Orijinal sayfa taramaları (10 × WebP, 1544 × 1920)
 ├── test/
 │   ├── dogrulama.html      Tarayıcıda açılan kontrol koşumu (115 kontrol)
-│   └── gunluk-denemesi.html Deneme günlüğü + istatistik ölçütleri (53 kontrol)
+│   └── gunluk-denemesi.html Deneme günlüğü + istatistik ölçütleri (79 kontrol)
 ├── sunucu/                 E-kitabın parçası DEĞİL — anahtarı saklayan uçlar
 │   ├── supabase/
 │   │   ├── functions/limit-koc/index.ts   OpenAI vekil sunucusu (Deno)
@@ -44,6 +44,7 @@ limit-sayisal-demo/
     ├── ui-yanpanel.js      Branş sekmeleri ve sayfa/soru ağacı
     ├── ui-sayfa.js         Sahne: karşılama + tarama görüntüleyici
     ├── ui-koc.js           Koç açılır penceresi (yardım / çözüm kipleri)
+    ├── demo-seti.js        Sunum örnek verisi (?demo=1) — belleğe üretir, yazmaz
     ├── istatistik.js       Ölçüt hesabı (saf; DOM bilmez) — TEK tanım yeri
     ├── grafik.js           Chart.js marka teması + tablo yedeği (ölçüt hesaplamaz)
     ├── ui-istatistik.js    İstatistik sayfası: kartlar + grafik kartları
@@ -515,7 +516,40 @@ Uç nokta hata verirse koç sessizce çevrimdışı motora düşer, oturum kesil
 ## İstatistik paneli
 
 `?istatistik` görünümü ya da başlıktaki **İstatistiklerim** düğmesiyle açılır.
-`index.html?demo=1` sunum için örnek verilerle doldurur.
+`index.html?demo=1` sunum için örnek verilerle doldurur (aşağıya bakın).
+
+### Örnek veri seti (`?demo=1`)
+
+Sunumda paneli dolu göstermek için `index.html?demo=1` uzun süre çalışmış bir öğrencinin
+geçmişini yükler: **12 gün · 50 soru · 10 konu · 85 deneme**. Set `src/demo-seti.js`
+içindedir ve `Limit.demoSeti.uret()` ile üretilir; **hiçbir yere yazmaz**, dizi
+`Limit.demoVeri`ye konur. Öğrencinin gerçek günlüğü yerinde kalır, `?demo=1` kapanınca
+panel gerçek veriye döner. Panelin üstünde "Örnek veri · gerçek kullanım kaydı değildir"
+şeridi çıkar.
+
+Veri rastgele değil, bir **profil** anlatır — hız–isabet haritasının dört bölgesi de
+dolsun diye bilinçli olarak çeşitlendirilmiştir:
+
+| Bölge | Konular | Ort. süre | İlk denemede |
+|---|---|---|---|
+| Hızlı ve isabetli | Canlıların Temel Bileşenleri - III · Vektörler - III · Vektörler - II | 38-62 sn | %50-83 |
+| Emin ama yavaş | Sayılar - VII · Canlıların Temel Bileşenleri - II · Elementleri Tanıyalım - I | 105-145 sn | %50-67 |
+| Acele ediyorsun | Sayılar - VI · Periyodik Özellikler - II | 50-55 sn | %25-33 |
+| Kavram eksiği | Doğruda Açı - V · Doğruda Açı - IV | 165-185 sn | %17-20 |
+
+Zaman içinde hafif bir gelişim var: ilk günlerde ilk-deneme oranı ~%33 ve süreler ~190 sn,
+son günlerde ~%67 ve ~43 sn. Eğri düz değil — gerçek çalışmadaki gibi iyi ve kötü günler
+serpiştirilmiştir.
+
+Konu adları **uydurulmaz**: kayıtlar gerçek soru kimlikleri üzerinden üretilir,
+konu/ünite/branş/zorluk alanlarını `data/veri.js`ten analitik katmanı doldurur. Çeldirici
+seçimi de rastgele değildir; doğru şıkkın komşuları işaretlenir, böylece çeldirici analizi
+anlamlı veri bulur.
+
+Setin içinde kasıtlı sınır durumları vardır: 4 soru hiç çözülememiştir (bar grafiğinin
+üçüncü dilimi dolsun diye), bir soru koçtan yardım alınarak ilk denemede doğru
+bulunmuştur (bu ölçüt gereği "ilk denemede doğru" **sayılmaz**), bir soru üç denemede
+yardımsız çözülmüştür.
 
 ### Tek veri kaynağı
 
@@ -618,12 +652,14 @@ motorun kademe akışı; ayrıca canlı kip: vekil sunucu sözleşmesi, anahtar 
 (istekte `sk-` / `service_role` var mı), sunucu hatasında yerel motora düşme ve analitik
 modülünün kapalıyken çökmemesi.
 
-`test/gunluk-denemesi.html` ikinci koşumdur: 53 kontrol. Deneme günlüğünün alan
+`test/gunluk-denemesi.html` ikinci koşumdur: 79 kontrol. Deneme günlüğünün alan
 bütünlüğü ve kalıcılığı, 500 kayıtlık tavan, panelin tek veri kaynağı (demo kipi depoya
 dokunmuyor mu, özet ile konular aynı toplamı veriyor mu), hız–isabet eşikleri (ortanca
 yalnızca yeterli örneklemli konulardan mı, sınırda duran konu yavaş sayılıyor mu, tek
 konuda sabit yedeğe düşülüyor mu) ve gelişim serisi (gün toplamı özet kartıyla birebir
-tutuyor mu, gün sınırı yerel saate göre mi).
+tutuyor mu, gün sınırı yerel saate göre mi). Ayrıca `?demo=1` setinin ölçeği
+(≥50 soru, ≥8 konu, ≥10 gün), dört bölgenin de dolu olması, sürelerin ve isabetin
+çeşitliliği, yukarı eğilim ve setin depoya hiçbir şey yazmaması.
 
 ## Kısayollar
 
@@ -646,4 +682,4 @@ Sıfırlamak için: Ayarlar → *Demoyu sıfırla*.
 
 ## Sürüm
 
-`0.6.0-demo` · istatistik paneli (özet kartları + beş grafik)
+`0.7.0-demo` · istatistik paneli · 12 günlük sunum veri seti
