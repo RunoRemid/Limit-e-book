@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="css/bilesenler.css">
   <link rel="stylesheet" href="css/tarama.css">
   <link rel="stylesheet" href="css/video.css">
+  <link rel="stylesheet" href="css/istatistik.css">
   <!-- Hareket katmanı en sonda: durum stillerinin üstüne yazar -->
   <link rel="stylesheet" href="css/hareket.css">
 </head>
@@ -50,6 +51,9 @@
     <nav class="ustbar__branslar" id="bransSekmeleri" role="tablist" aria-label="Branşlar"></nav>
 
     <div class="ustbar__sag">
+      <button class="istatistik-dugme" id="dugmeIstatistik" title="İstatistiklerim">
+        <span aria-hidden="true">◧</span><span class="istatistik-dugme__yazi">İstatistiklerim</span>
+      </button>
       <button class="dugme dugme--ikon" id="dugmeAyar" title="Ayarlar" aria-label="Ayarlar">⚙</button>
     </div>
   </header>
@@ -162,7 +166,9 @@
 <script src="src/analitik.js"></script>
 <script src="src/ai-sokratik.js"></script>
 <script src="src/ui-yanpanel.js"></script>
+<script src="src/istatistik.js"></script>
 <script src="src/ui-sayfa.js"></script>
+<script src="src/ui-istatistik.js"></script>
 <script src="src/ui-koc.js"></script>
 <script src="src/app.js"></script>
 

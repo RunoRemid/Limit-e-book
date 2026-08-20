@@ -15,7 +15,9 @@
      =========================================================== */
   function adresYaz() {
     var d = Limit.depo.al();
-    var yeni = '#/' + (d.aktifBrans || '') + (d.aktifSoruId ? '/' + d.aktifSoruId : '');
+    var yeni = d.gorunum === 'istatistik'
+      ? '#/istatistik'
+      : '#/' + (d.aktifBrans || '') + (d.aktifSoruId ? '/' + d.aktifSoruId : '');
     if (global.location.hash !== yeni) {
       global.history.replaceState(null, '', yeni);
     }
@@ -23,11 +25,23 @@
 
   function adresOku() {
     var parca = (global.location.hash || '').replace(/^#\/?/, '').split('/');
+
+    /* #/istatistik ayrı bir görünüm; branş/soru kısmına karışmaz. */
+    if (parca[0] === 'istatistik') {
+      return { gorunum: 'istatistik', brans: null, soruId: null };
+    }
+
     var brans = parca[0] || null;
     var soruId = parca[1] || null;
     if (brans && !Limit.veri.brans(brans)) brans = null;
     if (soruId && !Limit.veri.soru(soruId)) soruId = null;
-    return { brans: brans, soruId: soruId };
+    return { gorunum: 'soru', brans: brans, soruId: soruId };
+  }
+
+  /* İstatistik düğmesinin basılı/aktif görünümü */
+  function istatistikDugmesiTazele() {
+    var d = Y.sec('#dugmeIstatistik');
+    if (d) d.setAttribute('aria-current', String(Limit.depo.al().gorunum === 'istatistik'));
   }
 
   /* ===========================================================
@@ -144,6 +158,23 @@
     videoAc: videoAc,
     videoKapat: videoKapat,
 
+    /* --- İstatistik görünümü ------------------------------- */
+    istatistikAc: function () {
+      Limit.depo.guncelle({ gorunum: 'istatistik' }, true);
+      adresYaz();
+      istatistikDugmesiTazele();
+      Limit.sahne.ciz();
+      var s = Y.sec('#sahne');
+      if (s) s.scrollTop = 0;
+    },
+
+    istatistikKapat: function () {
+      Limit.depo.guncelle({ gorunum: 'soru' }, true);
+      adresYaz();
+      istatistikDugmesiTazele();
+      Limit.sahne.ciz();
+    },
+
     /* Yakınlık kademesini bir adım değiştirir */
     yakinlikDegistir: function (yon) {
       var kademeler = Limit.sahne.YAKINLIK_KADEMELERI;
@@ -188,6 +219,9 @@
 
       /* 2) Adresten gelen durum, kayıtlı durumun önüne geçer */
       var adres = adresOku();
+      /* Görünüm her zaman adresten gelir: #/istatistik ile paylaşılan
+         bağlantı doğrudan panele açılsın, kayıtlı durum ezmesin. */
+      Limit.depo.guncelle({ gorunum: adres.gorunum }, true);
       if (adres.brans || adres.soruId) {
         Limit.depo.guncelle({
           aktifBrans: adres.brans || (adres.soruId ? Limit.veri.soruSayfasi(adres.soruId).brans : null),
@@ -224,6 +258,13 @@
 
       /* 5) Kabuk düğmeleri */
       Y.sec('#dugmeYanPanel').addEventListener('click', function () { Limit.uygulama.yanAcKapa(); });
+      Y.sec('#dugmeIstatistik').addEventListener('click', function () {
+        var d = Limit.depo.al();
+        if (d.gorunum === 'istatistik') Limit.uygulama.istatistikKapat();
+        else Limit.uygulama.istatistikAc();
+      });
+      istatistikDugmesiTazele();
+
       Y.sec('#dugmeAyar').addEventListener('click', ayarlariAc);
       Y.sec('#perde').addEventListener('click', function () {
         Limit.uygulama.yanAcKapa(false);
@@ -315,6 +356,49 @@
         if (a.soruId && a.soruId !== Limit.depo.al().aktifSoruId) Limit.uygulama.soruAc(a.soruId);
       });
 
+
+
+      /* --- Sunum yardımcısı: örnek istatistik verisi -------------
+         index.html?demo=1 ile açılırsa panel örnek verilerle dolar.
+         Sunumda paneli canlı göstermek için; beş soru çözmeyi
+         beklemeye gerek kalmaz.
+
+         ⚠ Bu ÖRNEK veridir, gerçek kullanım değildir. Panelde
+         bunu söyleyen görünür bir şerit çıkar (istatistikOrnekVeri);
+         izleyici gerçek öğrenci verisi sanmasın.
+         Parametre verilmezse tek satırı bile çalışmaz.            */
+      (function () {
+        if (global.location.search.indexOf('demo=1') === -1) return;
+        Limit.istatistikOrnekVeri = true;
+        Limit.depo.denemeGunluguSil();
+        var t0 = Date.now() - 6 * 864e5;
+        function ek(soruId, secim, denemeNo, sure, koc, gunOfset) {
+          var soru = Limit.veri.soru(soruId); if (!soru) return;
+          var kayit = Limit.analitik.denemeKaydi({
+            soru: soru, secim: secim,
+            dogruMu: secim === soru.dogru,
+            sureSn: sure, denemeNo: denemeNo,
+            cozuldu: secim === soru.dogru
+          });
+          if (koc) kayit.koc_yardimi = true;
+          kayit.zaman = new Date(t0 + gunOfset * 864e5).toISOString();
+          Limit.depo.denemeEkle(kayit);
+        }
+        /* Vektörler: güçlü — çoğu ilk denemede */
+        ek('FIZ-T2-S5','B',1,52,false,0); ek('FIZ-T2-S6','C',1,61,false,0);
+        ek('FIZ-T2-S7','C',1,44,false,1); ek('FIZ-T2-S8','A',1,70,false,1);
+        ek('FIZ-T2-S8','C',2,96,false,1);
+        /* Doğruda Açı: odak alanı — çok deneme, koç yardımı */
+        ek('GEO-T4-S7','A',1,88,false,2); ek('GEO-T4-S7','C',2,140,true,2);
+        ek('GEO-T4-S7','D',3,190,true,2); ek('GEO-T4-S8','B',1,75,false,3);
+        ek('GEO-T4-S8','E',2,130,true,3); ek('GEO-T4-S9','C',1,66,false,4);
+        ek('GEO-T4-S9','E',2,118,true,4);
+        /* Periyodik: orta */
+        ek('KIM-T6-S5','E',1,58,false,5); ek('KIM-T6-S6','B',1,49,false,5);
+        ek('KIM-T6-S6','E',2,90,false,5); ek('KIM-T6-S7','C',1,72,true,6);
+        Limit.depo.guncelle({ gorunum: 'istatistik' }, true);
+        adresYaz(); istatistikDugmesiTazele(); Limit.sahne.ciz();
+      })();
 
 
       console.info('[Limit] Sayısal demo hazır · sürüm ' + Limit.surum +

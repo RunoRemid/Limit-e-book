@@ -159,6 +159,7 @@
   var BASLANGIC = {
     aktifBrans: null,        // 'matematik' | ... | null (karşılama)
     aktifSoruId: null,
+    gorunum: 'soru',        // 'soru' | 'istatistik'
     yanAcik: true,
     /* kocAcik kaldırıldı — koç sabit panel değil, açılır pencere. */
     tamSayfa: false,         // taramada odak kipi mi tam sayfa mı

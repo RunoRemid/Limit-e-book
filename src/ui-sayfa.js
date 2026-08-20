@@ -521,6 +521,12 @@
     ciz: function () {
       var durum = Limit.depo.al();
       kronoDurdur();
+      /* İstatistik ayrı bir görünüm; sahnenin tek giriş noktası
+         burası olduğu için dallanma da burada. */
+      if (durum.gorunum === 'istatistik') {
+        Limit.istatistikSayfa.ciz(sahne);
+        return;
+      }
       if (!durum.aktifSoruId) { karsilamaCiz(); return; }
       var soru = Limit.veri.soru(durum.aktifSoruId);
       if (soru) soruCiz(soru); else karsilamaCiz();

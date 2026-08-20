@@ -1,0 +1,239 @@
+/* =============================================================
+   istatistik.css — Hata analitiği / istatistik paneli
+   Marka token'larından beslenir; yeni sabit renk tanımlanmaz.
+   ============================================================= */
+
+.istatistik { gap: var(--bosluk-5); }
+
+/* --- Sayfa başlığı -------------------------------------------- */
+.istatistik-ust {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--bosluk-4);
+  flex-wrap: wrap;
+  padding-bottom: var(--bosluk-4);
+  border-bottom: 1px solid var(--cizgi);
+}
+
+.istatistik-ust__baslik {
+  font-family: var(--yazi-baslik);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--murekkep);
+  line-height: 1.1;
+}
+
+.istatistik-ust__alt {
+  margin-top: var(--bosluk-2);
+  font-size: var(--olcek-sm);
+  color: var(--metin-soluk);
+}
+
+/* --- Özet şeridi ----------------------------------------------
+   Beş kart; dar ekranda kendiliğinden sarar. */
+.ozet-serit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--bosluk-3);
+}
+
+.ozet-kart {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--bosluk-4);
+  background: var(--yuzey);
+  border: 1px solid var(--cizgi);
+  border-radius: var(--yuvarlak);
+  box-shadow: var(--golge-1);
+  min-width: 0;
+}
+
+/* Manşet ölçüt: gümüş yaldız üst şeritle ayrılır */
+.ozet-kart--vurgu {
+  position: relative;
+  border-color: var(--cizgi-koyu);
+  box-shadow: var(--golge-monte);
+}
+.ozet-kart--vurgu::before {
+  content: "";
+  position: absolute;
+  left: -1px; right: -1px; top: -1px;
+  height: 3px;
+  border-radius: var(--yuvarlak) var(--yuvarlak) 0 0;
+  background: var(--gumus-yaldiz);
+}
+
+.ozet-kart__etiket {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--metin-soluk);
+}
+
+.ozet-kart__deger {
+  font-family: var(--yazi-baslik);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--murekkep);
+  overflow-wrap: anywhere;
+}
+
+.ozet-kart--vurgu .ozet-kart__deger { color: var(--kizil-zemin); }
+
+/* Ölçütün tanımı — dürüstlük satırı, gri ve küçük */
+.ozet-kart__alt {
+  margin-top: var(--bosluk-2);
+  font-size: var(--olcek-xs);
+  line-height: 1.45;
+  color: var(--metin-orta);
+}
+
+/* İkincil ölçüt — ana ölçütle karışmasın diye daha sönük */
+.ozet-kart__soluk {
+  margin-top: var(--bosluk-1);
+  font-size: var(--olcek-xs);
+  line-height: 1.45;
+  color: var(--metin-soluk);
+  opacity: 0.85;
+}
+
+/* --- Boş durum ------------------------------------------------ */
+.istatistik-bos {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--bosluk-3);
+  padding: var(--bosluk-7) var(--bosluk-6);
+  border-top-left-radius: 0;
+}
+
+/* Soru kartındaki origami fasetiyle aynı dil */
+.istatistik-bos__faset {
+  position: absolute;
+  top: 0; left: 0;
+  width: 34px; height: 34px;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  background: linear-gradient(135deg,
+              #FFFFFF 0%, #EDEDF0 26%, #C6C6CC 52%,
+              #9A9AA0 74%, #7C7E84 100%);
+}
+
+.istatistik-bos__baslik {
+  font-family: var(--yazi-baslik);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--murekkep);
+}
+
+.istatistik-bos__metin {
+  max-width: 58ch;
+  color: var(--metin-orta);
+  line-height: 1.6;
+}
+
+/* --- Grafik kartları (Aşama 3'te dolacak) --------------------- */
+.grafik-kart { padding: 0; overflow: hidden; }
+
+.grafik-kart__ust {
+  padding: var(--bosluk-4) var(--bosluk-5);
+  border-bottom: 1px solid var(--cizgi);
+}
+
+.grafik-kart__baslik {
+  font-family: var(--yazi-baslik);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--murekkep);
+}
+
+.grafik-kart__alt {
+  margin-top: 2px;
+  font-size: var(--olcek-xs);
+  color: var(--metin-soluk);
+}
+
+.grafik-kart__govde {
+  padding: var(--bosluk-5);
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+}
+
+.grafik-kart__bekliyor {
+  font-size: var(--olcek-sm);
+  color: var(--metin-soluk);
+  text-align: center;
+}
+
+/* --- Üst bardaki giriş düğmesi -------------------------------- */
+.istatistik-dugme {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  height: 34px;
+  padding: 0 var(--bosluk-3);
+  border-radius: var(--yuvarlak-sm);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.10);
+  color: #FFFFFF;
+  font-family: var(--yazi-govde);
+  font-size: var(--olcek-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.istatistik-dugme:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.istatistik-dugme[aria-current="true"] {
+  background: #FFFFFF;
+  border-color: #FFFFFF;
+  color: var(--kizil-zemin);
+}
+
+@media (max-width: 720px) {
+  .istatistik-dugme__yazi { display: none; }
+  .istatistik-dugme { padding: 0 var(--bosluk-2); }
+  .istatistik-ust__baslik { font-size: 26px; }
+  .istatistik-bos { padding: var(--bosluk-6) var(--bosluk-4); }
+}
+
+/* Beş kart tek satıra sığsın; tek başına sarkan kart dengesiz duruyordu. */
+.ozet-serit { grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); }
+
+/* Metin taşıyan değerler (konu adı, süre) rakamlardan küçük:
+   iki satıra taşıp kartı uzatmasınlar. */
+.ozet-kart__deger--metin {
+  font-size: 19px;
+  line-height: 1.3;
+}
+
+/* Yüzde işareti gövde fontunda ve küçük — Bodoni'nin süslü % 'si
+   küçük boyutta okunmuyordu. */
+.ozet-kart__isaret {
+  font-family: var(--yazi-govde);
+  font-size: 0.62em;
+  font-weight: 600;
+  margin-right: 1px;
+  vertical-align: 0.12em;
+}
+
+/* Örnek veri şeridi — sunumda sahte veri gerçek sanılmasın diye
+   görünür ama sayfayı bastırmayan bir uyarı. */
+.ornek-veri-serit {
+  padding: var(--bosluk-3) var(--bosluk-4);
+  border: 1px solid var(--uyari);
+  border-left-width: 3px;
+  border-radius: var(--yuvarlak-sm);
+  background: var(--uyari-zemin);
+  color: #8A5A12;
+  font-size: var(--olcek-sm);
+  line-height: 1.5;
+}
