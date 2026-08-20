@@ -84,6 +84,10 @@
   }
 
   /* ----------------------------------------------------------- */
+  /* Örnek set bir kez üretilip saklanır; her çizimde yeniden
+     üretmek gereksiz. */
+  var ornekOnbellek = null;
+
   function yuzde(pay, payda) {
     return payda ? Math.round((pay / payda) * 100) : 0;
   }
@@ -147,7 +151,23 @@
      */
     aktifGunluk: function () {
       if (Array.isArray(Limit.demoVeri)) return Limit.demoVeri;
-      return this.gunluk();
+
+      var g = this.gunluk();
+      if (g.length >= YETERLI_VERI) {
+        Limit.istatistikOrnekVeri = false;
+        return g;
+      }
+
+      /* Gerçek veri eşiğin altındaysa panel boş kalmaz: örnek set
+         gösterilir ve üstte "Örnek veri · gerçek kullanım kaydı
+         değildir" şeridi çıkar. Öğrenci beş deneme yapar yapmaz
+         kendi verisi devralır; örnek set depoya YAZILMAZ. */
+      if (Limit.demoSeti) {
+        if (!ornekOnbellek) ornekOnbellek = Limit.demoSeti.uret();
+        Limit.istatistikOrnekVeri = true;
+        return ornekOnbellek;
+      }
+      return g;
     },
 
     soruBazinda: function (gunluk) {
@@ -260,7 +280,7 @@
         denenenSoru: denenen,
         cozulenSoru: cozulen,
         toplamSoru: toplamSoru,
-        kapsamYuzde: yuzde(denenen, toplamSoru),
+        kapsamYuzde: Math.min(100, yuzde(denenen, toplamSoru)),
 
         /* İki ölçüt, AYNI payda: denenen soru sayısı */
         ilkDenemedeSoru: ilkDenemede,

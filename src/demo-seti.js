@@ -14,7 +14,7 @@
 
    -------------------------------------------------------------
    PROFİL — veri rastgele DEĞİL, bir öğrenci anlatır
-   12 gün · 50 soru · 10 konu · 85 deneme.
+   12 gün · 150 soru · 10 konu · 255 deneme.
 
      Vektörler II-III, Canlıların Temel Bileşenleri - III
        → kısa süre, yüksek ilk-deneme isabeti      (güçlü)
@@ -45,6 +45,8 @@
   var Limit = global.Limit;
 
   var GUN_SAYISI = 12;
+  /* Program kaç kez tekrarlanacak — 50 soru × 3 = 150 soru. */
+  var KOPYA = 3;
   var SIKLAR = ['A', 'B', 'C', 'D', 'E'];
 
   /* Çalışma programı. Her satır: soru kimliği, gün (0 = en eski),
@@ -171,25 +173,45 @@
         return t.toISOString();
       }
 
-      PROGRAM.forEach(function (satir) {
+      /* Soru bankasında 50 soru var; sunumda "uzun süredir çalışan
+         öğrenci" ölçeği için program KOPYA kez tekrarlanır.
+         Kopyalar aynı GÜNE ve aynı deneme desenine düşer: böylece
+         konu profilleri, günlük oranlar ve gelişim eğrisi birebir
+         korunur, yalnızca hacim büyür.
+
+         Kopyanın soru kimliği ayrıdır (…-K1), çünkü panel soruları
+         soru_id ile sayar; aynı kimlik verilseydi 50 soruda kalırdı.
+         Süre kopya başına birkaç saniye kaydırılır ki ortalamalar
+         yapay biçimde tıpatıp aynı çıkmasın. */
+      var isler = [];
+      for (var kopya = 0; kopya < KOPYA; kopya++) {
+        PROGRAM.forEach(function (satir) {
+          isler.push([satir[0], satir[1], satir[2], kopya]);
+        });
+      }
+
+      isler.forEach(function (satir) {
         var soru = Limit.veri.soru(satir[0]);
         if (!soru) return;
         var gun = satir[1];
+        var kopya = satir[3];
+        var ek = kopya ? '-K' + kopya : '';
 
         satir[2].forEach(function (adim, i) {
           var harf = adim.charAt(0);
           var dogruMu = harf === 'D' || harf === 'd';
           var koc = harf === harf.toLowerCase();
-          var sure = parseInt(adim.slice(1), 10);
+          var sure = parseInt(adim.slice(1), 10) + kopya * 3;
 
           var kayit = Limit.analitik.denemeKaydi({
             soru: soru,
-            secim: dogruMu ? soru.dogru : celdirici(soru, i),
+            secim: dogruMu ? soru.dogru : celdirici(soru, i + kopya),
             dogruMu: dogruMu,
             sureSn: sure,
             denemeNo: i + 1,
             cozuldu: dogruMu
           });
+          kayit.soru_id = soru.id + ek;
 
           /* denemeKaydi koç durumunu depodaki ipucu kademesinden
              okur; demo depoya dokunmadığı için burada elle yazılır
