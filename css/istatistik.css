@@ -237,3 +237,81 @@
   font-size: var(--olcek-sm);
   line-height: 1.5;
 }
+
+/* =============================================================
+   Grafikler
+   ============================================================= */
+.grafik-kart__govde { display: block; place-items: initial; }
+
+/* Her grafiğin başında bir cümlelik metin özeti: renge bağlı
+   kalmayan, ekran okuyucunun da okuyabildiği asıl bilgi. */
+.grafik-ozet {
+  margin: 0 0 var(--bosluk-3);
+  font-size: var(--olcek-sm);
+  line-height: 1.55;
+  color: var(--metin-orta);
+}
+
+/* Kendi göstergemiz — Chart.js'in varsayılanı kapalı */
+.grafik-gosterge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bosluk-2) var(--bosluk-4);
+  margin: 0 0 var(--bosluk-4);
+  padding: 0;
+  list-style: none;
+}
+.grafik-gosterge li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  font-size: var(--olcek-xs);
+  color: var(--metin-orta);
+}
+.grafik-gosterge__kutu {
+  width: 11px; height: 11px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.grafik-tuval { position: relative; width: 100%; }
+.grafik-tuval canvas { width: 100% !important; }
+
+/* Kütüphane yoksa devreye giren tablo — aynı veri, farklı biçim */
+.grafik-tablo-sarmal { overflow-x: auto; }
+.grafik-tablo {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--olcek-sm);
+}
+.grafik-tablo th,
+.grafik-tablo td {
+  padding: var(--bosluk-2) var(--bosluk-3);
+  text-align: left;
+  border-bottom: 1px solid var(--cizgi);
+  white-space: nowrap;
+}
+.grafik-tablo thead th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--metin-soluk);
+}
+.grafik-tablo tbody th {
+  font-weight: 600;
+  color: var(--murekkep);
+  white-space: normal;
+}
+.grafik-tablo td {
+  font-variant-numeric: tabular-nums;
+  color: var(--metin-orta);
+}
+
+.grafik-uyari {
+  padding: var(--bosluk-3) var(--bosluk-4);
+  border-radius: var(--yuvarlak-sm);
+  background: var(--uyari-zemin);
+  color: #8A5A12;
+  font-size: var(--olcek-sm);
+}

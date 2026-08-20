@@ -17,6 +17,8 @@
   /* ----------------------------------------------------------- */
   function sureBicimUzun(sn) {
     if (sn === null || sn === undefined) return '—';
+    /* "0 sn" bozuk görünüyor; ölçülemeyecek kadar kısa demek. */
+    if (sn < 1) return "1 sn'den az";
     if (sn < 60) return sn + ' sn';
     var dk = Math.floor(sn / 60);
     var kalan = sn % 60;
@@ -153,7 +155,20 @@
     ]);
   }
 
-  /* --- Grafik yuvaları (Aşama 3'te dolacak) --------------------- */
+  /* --- Grafik kartı -------------------------------------------
+     govde: doldurucu fonksiyon. Grafik yoksa (kütüphane gelmediyse)
+     aynı veriyi taşıyan tablo döner; kart hiçbir koşulda boş kalmaz. */
+  function grafikKarti(id, ad, aciklama, govde) {
+    return Y.el('section', { class: 'kart grafik-kart', id: id }, [
+      Y.el('header', { class: 'grafik-kart__ust' }, [
+        Y.el('h2', { class: 'grafik-kart__baslik', metin: ad }),
+        aciklama ? Y.el('p', { class: 'grafik-kart__alt', metin: aciklama }) : null
+      ]),
+      Y.el('div', { class: 'grafik-kart__govde' }, [govde])
+    ]);
+  }
+
+  /* Sonraki aşamada dolacak analizler için yer tutucu */
   function yuva(id, ad, aciklama) {
     return Y.el('section', { class: 'kart grafik-kart', id: id }, [
       Y.el('header', { class: 'grafik-kart__ust' }, [
@@ -185,15 +200,35 @@
       if (!ozet.yeterliVeri) {
         ic.appendChild(bosDurum(ozet));
       } else {
+        var konular = Limit.istatistik.konular();
+        Limit.grafik.temaKur();
+
         ic.appendChild(ozetSeridi(ozet));
-        ic.appendChild(yuva('grafikKonu', 'Konu bazında doğru ve yanlış',
-          'Hangi konuda ne kadar isabet ettin'));
-        ic.appendChild(yuva('grafikYanlisDagilim', 'Yanlışların konu dağılımı',
-          'Yanlışlar hangi konularda toplanıyor'));
+
+        ic.appendChild(grafikKarti('grafikKonu', 'Konu bazında doğru ve yanlış',
+          'Sınırsız denemede "doğru/yanlış" ikilisi anlamsızdır; ayrım üçlü yapılır',
+          Limit.grafik.konuBari(konular)));
+
+        ic.appendChild(grafikKarti('grafikYanlisDagilim', 'Yanlışların konu dağılımı',
+          'Yanlış işaretlemelerin hangi konularda toplandığı',
+          Limit.grafik.yanlisHalka(konular)));
+
+        ic.appendChild(grafikKarti('grafikSure', 'Konu bazında ortalama süre',
+          'Doğruyu bulana kadar geçen süre',
+          Limit.grafik.sureBari(konular)));
+
         ic.appendChild(yuva('grafikHizIsabet', 'Hız–isabet haritası',
           'Nerede acele ediyorsun, nerede kavram eksiğin var'));
         ic.appendChild(yuva('grafikGelisim', 'Zaman içinde gelişim',
           'Doğruluk ve süre nasıl değişiyor'));
+
+        /* Kütüphane gelmediyse bunu sessizce geçme — panelin
+           tablolarla çalıştığını söyle. */
+        if (!Limit.grafik.chartVarMi()) {
+          ic.appendChild(Y.el('p', { class: 'grafik-uyari' },
+            ['Grafik kütüphanesi yüklenemedi (ağ erişimi yok olabilir). ' +
+             'Veriler yukarıda tablo olarak gösteriliyor.']));
+        }
       }
 
       Y.bosalt(sahne).appendChild(ic);

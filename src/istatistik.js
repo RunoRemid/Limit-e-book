@@ -131,8 +131,27 @@
         var k = konular[ad];
         k.ilkDenemeYuzde = yuzde(k.ilkDenemede, k.denenen);
         k.cozulmeYuzde = yuzde(k.cozulen, k.denenen);
-        k.yanlis = k.toplamDeneme - k.cozulen;
         k.ortalamaSure = k.sureAdet ? Math.round(k.toplamSure / k.sureAdet) : null;
+
+        /* Grafiklerin kullandığı üçlü ayrım. Burada tanımlanır ki
+           kart ile grafik asla çelişmesin — grafik katmanı ölçüt
+           hesaplamaz, yalnızca bu alanları çizer.
+
+           Sınırsız deneme altında ikili "doğru/yanlış" anlamsızdır:
+           yeterince deneyen herkesin her sorusu sonunda "doğru"
+           olur. Anlamlı ayrım üçlüdür:                            */
+        k.sonradanCozulen = k.cozulen - k.ilkDenemede;   /* tekrar/yardımla */
+        k.cozulemeyen     = k.denenen - k.cozulen;       /* hâlâ açık */
+
+        /* Yanlış DENEME sayısı: "yanlışların dağılımı" grafiğinin
+           birimi. Soru bazlı değil deneme bazlı — öğrencinin kaç kez
+           yanlış işaretlediğini gösterir. */
+        k.yanlisDeneme = k.toplamDeneme - k.cozulen;
+
+        /* Örneklem eşiğinin altındaki konular grafikte "yetersiz
+           veri" olarak işaretlenir; sıfır gibi gösterilmez. */
+        k.yeterliOrneklem = k.denenen >= KONU_ESIGI;
+
         return k;
       }).sort(function (a, b) { return b.denenen - a.denenen; });
     },
@@ -187,7 +206,10 @@
 
         ortalamaSureSn: sureAdet ? Math.round(sureToplam / sureAdet) : null,
 
-        gucluKonu: sirali.length ? sirali[0] : null,
+        /* İkisi de EN AZ İKİ aday ister. Tek konu varken "güçlü
+           konun" demek anlamsız: kıyas yoksa en güçlü de yoktur.
+           %33 ile "güçlü konun" yazmak öğrenciyi yanıltırdı. */
+        gucluKonu: sirali.length > 1 ? sirali[0] : null,
         odakKonu: sirali.length > 1 ? sirali[sirali.length - 1] : null,
         konuAdayi: adaylar.length
       };
