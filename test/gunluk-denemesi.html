@@ -10,6 +10,7 @@
 <script src="../src/veri-servis.js"></script>
 <script src="../src/analitik.js"></script>
 <script src="../src/ai-sokratik.js"></script>
+<script src="../src/istatistik.js"></script>
 <script>
 (function () {
   var cikti = [], sayac = 0;
@@ -98,6 +99,47 @@
   for (var i = 0; i < 520; i++) denemeYap('MAT-T6-S10', 'C', 1, 30, 0);
   kontrol('tavan asilinca eski kayitlar dusuyor',
     Limit.depo.denemeGunlugu().length === 500);
+
+  /* --- Panelin TEK veri kaynagi (gerileme testi) ---------------
+     Hata: demo kipi gercek gunlugu SILIP yerine ornek kayit
+     yaziyordu; kartlar ile grafikler farkli toplam gosteriyor ve
+     ogrencinin gercek gecmisi yok oluyordu. */
+  (function () {
+    var oncekiUzunluk = Limit.depo.denemeGunlugu().length;
+
+    /* Demo verisi bellekte; depoya dokunmamali */
+    Limit.demoVeri = [
+      { soru_id: 'X-1', konu: 'Deneme Konusu', brans: 'fizik', zorluk: 1,
+        secim: 'A', dogru_sik: 'A', dogru_mu: true, sure_sn: 10,
+        deneme_no: 1, koc_yardimi: false, zaman: '2026-08-20T10:00:00.000Z' },
+      { soru_id: 'X-2', konu: 'Deneme Konusu', brans: 'fizik', zorluk: 1,
+        secim: 'B', dogru_sik: 'C', dogru_mu: false, sure_sn: 20,
+        deneme_no: 1, koc_yardimi: false, zaman: '2026-08-20T10:01:00.000Z' }
+    ];
+
+    kontrol('kaynak: demo aciksa aktifGunluk demo verisini verir',
+      Limit.istatistik.aktifGunluk().length === 2);
+    kontrol('kaynak: demo kipi DEPOYA dokunmuyor',
+      Limit.depo.denemeGunlugu().length === oncekiUzunluk);
+
+    /* Kart ile grafik ayni diziden beslenince toplamlar esit olmali */
+    var g = Limit.istatistik.aktifGunluk();
+    var o = Limit.istatistik.ozet(g);
+    var k = Limit.istatistik.konular(g);
+    var konuToplami = k.reduce(function (t, x) { return t + x.denenen; }, 0);
+    kontrol('kaynak: ozet ve konular ayni toplami veriyor',
+      o.denenenSoru === konuToplami && konuToplami === 2);
+
+    /* Yuzde her zaman sonlu bir sayi olmali — kart "%" basmasin */
+    kontrol('olcut: ilkDenemeYuzde sonlu sayi',
+      typeof o.ilkDenemeYuzde === 'number' && isFinite(o.ilkDenemeYuzde));
+    kontrol('olcut: bos gunlukte de yuzde sonlu',
+      isFinite(Limit.istatistik.ozet([]).ilkDenemeYuzde));
+
+    delete Limit.demoVeri;
+    kontrol('kaynak: demo kapaninca gercek gunluge donuyor',
+      Limit.istatistik.aktifGunluk().length === oncekiUzunluk);
+  })();
 
   /* --- Kaliciligi dogrula ------------------------------------
      Depo yazimi 220ms geciktirmelidir (debounce); esanli kontrol

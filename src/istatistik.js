@@ -87,6 +87,21 @@
       return Limit.depo.denemeGunlugu();
     },
 
+    /**
+     * PANELİN TEK VERİ KAYNAĞI.
+     * Kartlar da grafikler de yalnızca buradan okur; aynı panelde
+     * iki farklı toplam çıkamaz.
+     *
+     * Demo verisi BELLEKTE durur (Limit.demoVeri), localStorage'a
+     * hiç dokunmaz. Önceki sürümde demo kipi gerçek deneme
+     * günlüğünü SİLİP yerine örnek kayıt yazıyordu; öğrencinin
+     * gerçek geçmişi yok oluyor ve iki veri birbirine karışıyordu.
+     */
+    aktifGunluk: function () {
+      if (Array.isArray(Limit.demoVeri)) return Limit.demoVeri;
+      return this.gunluk();
+    },
+
     soruBazinda: function (gunluk) {
       return soruBazinda(gunluk || this.gunluk());
     },

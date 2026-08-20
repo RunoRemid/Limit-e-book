@@ -30,15 +30,24 @@
      alt   : ölçütün ne olduğunu söyleyen küçük gri satır
      soluk : ikincil ölçüt — ana ölçütle karışmasın diye daha sönük */
   function kart(secenek) {
+    /* Değer güvencesi: hesap bir şekilde boş/NaN dönerse kart
+       "%" gibi yarım bir şey basmasın. Böyle bir durumda yüzde
+       işareti de düşer ve yerine "—" konur. */
+    var ham = secenek.deger;
+    var gecerli = !(ham === null || ham === undefined || ham === '' ||
+                    ham === 'NaN' || ham === 'undefined' ||
+                    (typeof ham === 'number' && !isFinite(ham)));
+    if (!gecerli) ham = '—';
+
     /* Yüzde işareti Bodoni'de çok süslü ve küçük boyutta okunmuyor;
        rakam başlık fontunda, "%" gövde fontunda ayrı bir span. */
     var deger = Y.el('span', {
       class: 'ozet-kart__deger' + (secenek.metinDeger ? ' ozet-kart__deger--metin' : '')
     });
-    if (secenek.yuzdeMi) {
+    if (secenek.yuzdeMi && gecerli) {
       deger.appendChild(Y.el('span', { class: 'ozet-kart__isaret', metin: '%' }));
     }
-    deger.appendChild(document.createTextNode(secenek.deger));
+    deger.appendChild(document.createTextNode(String(ham)));
 
     var icerik = [
       Y.el('span', { class: 'ozet-kart__etiket', metin: secenek.etiket }),
@@ -185,7 +194,12 @@
   Limit.istatistikSayfa = {
 
     ciz: function (sahne) {
-      var ozet = Limit.istatistik.ozet();
+      /* Günlük BİR KEZ çözümlenir ve hem özete hem grafiklere aynı
+         dizi geçirilir. Daha önce ikisi kaynağı ayrı ayrı okuyordu;
+         araya bir yazma girdiğinde panelde iki farklı toplam
+         çıkabiliyordu. */
+      var gunluk = Limit.istatistik.aktifGunluk();
+      var ozet = Limit.istatistik.ozet(gunluk);
       var ic = Y.el('div', { class: 'sahne__ic istatistik' }, [baslik(ozet)]);
 
       /* Örnek veriyle açıldıysa bunu görünür biçimde söyle —
@@ -200,7 +214,7 @@
       if (!ozet.yeterliVeri) {
         ic.appendChild(bosDurum(ozet));
       } else {
-        var konular = Limit.istatistik.konular();
+        var konular = Limit.istatistik.konular(gunluk);   /* aynı kaynak */
         Limit.grafik.temaKur();
 
         ic.appendChild(ozetSeridi(ozet));

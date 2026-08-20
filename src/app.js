@@ -370,7 +370,9 @@
       (function () {
         if (global.location.search.indexOf('demo=1') === -1) return;
         Limit.istatistikOrnekVeri = true;
-        Limit.depo.denemeGunluguSil();
+        /* Örnek kayıtlar BELLEKTE toplanır; localStorage'a ve
+           öğrencinin gerçek günlüğüne dokunulmaz. */
+        Limit.demoVeri = [];
         var t0 = Date.now() - 6 * 864e5;
         function ek(soruId, secim, denemeNo, sure, koc, gunOfset) {
           var soru = Limit.veri.soru(soruId); if (!soru) return;
@@ -382,7 +384,7 @@
           });
           if (koc) kayit.koc_yardimi = true;
           kayit.zaman = new Date(t0 + gunOfset * 864e5).toISOString();
-          Limit.depo.denemeEkle(kayit);
+          Limit.demoVeri.push(kayit);
         }
         /* Vektörler: güçlü — çoğu ilk denemede */
         ek('FIZ-T2-S5','B',1,52,false,0); ek('FIZ-T2-S6','C',1,61,false,0);
