@@ -141,6 +141,149 @@
       Limit.istatistik.aktifGunluk().length === oncekiUzunluk);
   })();
 
+
+  /* --- Aşama 3 ekleri: hız–isabet ve gelişim -------------------
+     Ölçütler yalnızca istatistik.js'te tanımlı; buradaki kontroller
+     tanımın kaymadığını ve toplamların kartla tuttuğunu kovalar. */
+  (function () {
+    var I = Limit.istatistik;
+
+    /* Kurgu günlük: gün ve süre değerleri elle seçildi ki bölge ve
+       ortanca beklenen yere düşsün. gunOfset gün cinsinden gerilik. */
+    function k(soruId, konu, secim, dogru, denemeNo, sure, koc, gunOnce) {
+      var t = new Date();
+      t.setDate(t.getDate() - gunOnce);
+      t.setHours(12, 0, 0, 0);
+      return {
+        oturum: 'test', zaman: t.toISOString(),
+        soru_id: soruId, konu: konu, brans: 'fizik', zorluk: 2,
+        secim: secim, dogru_sik: dogru, dogru_mu: secim === dogru,
+        sure_sn: sure, deneme_no: denemeNo, koc_yardimi: !!koc
+      };
+    }
+
+    /* HIZLI+İSABETLİ konu: 3 soru, hepsi ilk denemede, 30 sn
+       YAVAŞ+İSABETSİZ konu: 3 soru, hiçbiri ilk denemede, ~150 sn
+       AZ VERİ konu: tek soru                                     */
+    var G = [
+      k('H1', 'Hizli Konu', 'A', 'A', 1, 30, false, 4),
+      k('H2', 'Hizli Konu', 'A', 'A', 1, 28, false, 4),
+      k('H3', 'Hizli Konu', 'A', 'A', 1, 32, false, 3),
+
+      k('Y1', 'Yavas Konu', 'B', 'C', 1, 100, false, 2),
+      k('Y1', 'Yavas Konu', 'C', 'C', 2, 160, true, 2),
+      k('Y2', 'Yavas Konu', 'B', 'C', 1, 100, false, 1),
+      k('Y2', 'Yavas Konu', 'C', 'C', 2, 162, true, 1),
+      k('Y3', 'Yavas Konu', 'B', 'C', 1, 100, false, 1),
+      k('Y3', 'Yavas Konu', 'C', 'C', 2, 158, true, 1),
+
+      k('T1', 'Tek Soruluk Konu', 'A', 'A', 1, 40, false, 0)
+    ];
+
+    /* --- Eşikler ---------------------------------------------- */
+    var hi = I.hizIsabet(G);
+    kontrol('hiz-isabet: isabet esigi sabit %50', hi.esikIsabet === 50);
+    kontrol('hiz-isabet: iki saglam konu varsa esik ORTANCA', hi.yontem === 'ortanca');
+    /* Saglam konular: Hizli (30 sn) ve Yavas (160 sn) → ortanca 95.
+       Tek soruluk konu (40 sn) esige KARISMAMALI; karissaydi
+       ortanca 40 olur, yavas konu daha da uca savrulurdu.
+       95 bilinerek secildi: sabit yedek 90 ile karismasin. */
+    kontrol('hiz-isabet: esik yalnizca saglam konulardan hesaplandi',
+      hi.esikSure === 95);
+
+    var bul = {};
+    hi.noktalar.forEach(function (n) { bul[n.konu] = n; });
+
+    kontrol('hiz-isabet: hizli+isabetli konu "guclu" bolgesinde',
+      bul['Hizli Konu'].bolge === 'guclu' &&
+      bul['Hizli Konu'].bolgeAdi === 'Hızlı ve isabetli');
+    kontrol('hiz-isabet: yavas+isabetsiz konu "kavram" bolgesinde',
+      bul['Yavas Konu'].bolge === 'kavram' &&
+      bul['Yavas Konu'].bolgeAdi === 'Kavram eksiği');
+    kontrol('hiz-isabet: az veri konusu isaretli',
+      bul['Tek Soruluk Konu'].yeterliOrneklem === false);
+
+    /* Kart ile grafik celismesin: haritadaki isabet degeri, konu
+       tablosundaki ilkDenemeYuzde ile AYNI alandan gelmeli. */
+    var konuHarita = {};
+    I.konular(G).forEach(function (x) { konuHarita[x.konu] = x; });
+    kontrol('hiz-isabet: isabet degeri konu tablosuyla ayni',
+      hi.noktalar.every(function (n) {
+        return n.isabet === konuHarita[n.konu].ilkDenemeYuzde &&
+               n.sure === konuHarita[n.konu].ortalamaSure;
+      }));
+
+    /* Ortanca hesaplanamayacak kadar az konu → sabit yedek */
+    var tek = I.hizIsabet([G[0], G[1], G[2]]);
+    kontrol('hiz-isabet: tek konu varken sabit yedege dusuluyor',
+      tek.yontem === 'sabit' && tek.esikSure === I.HIZ_ESIGI_YEDEK);
+    kontrol('hiz-isabet: tek konu harita icin yetersiz', tek.yeterli === false);
+    kontrol('hiz-isabet: bos gunluk cokmuyor',
+      I.hizIsabet([]).noktalar.length === 0 && I.hizIsabet([]).yeterli === false);
+
+    /* Sınırda duran konu: ortancaya TAM EŞİT süre yavaş sayılmamalı.
+       Üç saglam konu 30 / 90 / 150 → ortanca 90; ortadaki konu tam
+       sınırda. Isabeti %100 oldugu icin "guclu" olmali, "yavas" degil. */
+    var sinir = [
+      k('S1', 'Sinir Konu', 'A', 'A', 1, 90, false, 2),
+      k('S2', 'Sinir Konu', 'A', 'A', 1, 90, false, 2),
+      k('S3', 'Sinir Konu', 'A', 'A', 1, 90, false, 2),
+      k('P1', 'Cok Yavas', 'A', 'A', 1, 150, false, 1),
+      k('P2', 'Cok Yavas', 'A', 'A', 1, 150, false, 1),
+      k('P3', 'Cok Yavas', 'A', 'A', 1, 150, false, 1)
+    ].concat([G[0], G[1], G[2]]);
+    var sh = I.hizIsabet(sinir);
+    var sinirNokta = sh.noktalar.filter(function (n) {
+      return n.konu === 'Sinir Konu';
+    })[0];
+    kontrol('hiz-isabet: sinir konusu ortancaya esit', sinirNokta.sure === sh.esikSure);
+    kontrol('hiz-isabet: ortancaya esit sure YAVAS sayilmiyor',
+      sinirNokta.hizli === true && sinirNokta.bolge === 'guclu');
+
+    /* --- Gelişim ---------------------------------------------- */
+    var gl = I.gelisim(G);
+    kontrol('gelisim: gunler eskiden yeniye sirali',
+      gl.gunler.map(function (x) { return x.gun; }).join() ===
+      gl.gunler.map(function (x) { return x.gun; }).slice().sort().join());
+
+    /* EN ÖNEMLİSİ: her soru ILK denendigi gune yazildigi icin
+       gunlerin toplami ozet kartindaki "denenen soru" ile birebir
+       tutmali — kart ile grafik asla celismesin. */
+    var gunToplami = gl.gunler.reduce(function (t, x) { return t + x.denenen; }, 0);
+    kontrol('gelisim: gun toplamlari ozet kartiyla birebir tutuyor',
+      gunToplami === I.ozet(G).denenenSoru && gunToplami === 7);
+    kontrol('gelisim: ilk denemede toplami da tutuyor',
+      gl.gunler.reduce(function (t, x) { return t + x.ilkDenemede; }, 0) ===
+      I.ozet(G).ilkDenemedeSoru);
+
+    kontrol('gelisim: az veri gunu isaretleniyor',
+      gl.gunler.some(function (x) { return x.azVeri === true; }));
+    kontrol('gelisim: yuzde her gunde sonlu sayi',
+      gl.gunler.every(function (x) {
+        return typeof x.ilkDenemeYuzde === 'number' && isFinite(x.ilkDenemeYuzde);
+      }));
+
+    /* Tek gün → nazik mesaj; trend cizilmemeli */
+    /* H1 ve H2 ayni gune ait; G[2] bir gun sonrasindadir. */
+    var birGun = I.gelisim([G[0], G[1]]);
+    kontrol('gelisim: tek gun trend icin yetersiz',
+      birGun.yeterli === false && birGun.gunSayisi === 1);
+    kontrol('gelisim: bos gunluk cokmuyor',
+      I.gelisim([]).yeterli === false && I.gelisim([]).gunSayisi === 0);
+
+    /* Gün sınırı YEREL saate göre: 23:30'da çözülen soru ertesi güne
+       kaymamalı (ISO damgasının ilk 10 hanesi UTC gününü verir). */
+    var gece = new Date(); gece.setDate(gece.getDate() - 1); gece.setHours(23, 30, 0, 0);
+    var sabah = new Date(); sabah.setDate(sabah.getDate() - 1); sabah.setHours(8, 0, 0, 0);
+    var geceGunluk = [
+      { soru_id: 'N1', konu: 'K', dogru_mu: true, deneme_no: 1, koc_yardimi: false,
+        sure_sn: 20, zaman: sabah.toISOString() },
+      { soru_id: 'N2', konu: 'K', dogru_mu: true, deneme_no: 1, koc_yardimi: false,
+        sure_sn: 20, zaman: gece.toISOString() }
+    ];
+    kontrol('gelisim: gun siniri yerel saate gore ciziliyor',
+      I.gelisim(geceGunluk).gunSayisi === 1);
+  })();
   /* --- Kaliciligi dogrula ------------------------------------
      Depo yazimi 220ms geciktirmelidir (debounce); esanli kontrol
      erken kalir. Debounce'un gecmesini bekliyoruz. */

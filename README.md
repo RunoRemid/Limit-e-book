@@ -21,13 +21,16 @@ limit-sayisal-demo/
 │   ├── duzen.css           Uygulama kabuğu (grid), duyarlılık
 │   ├── bilesenler.css      Düğme, rozet, kart, şık, koç modalı
 │   ├── tarama.css          Kitap sayfası görüntüleyici (odak/tam sayfa, yakınlık)
+│   ├── istatistik.css      İstatistik paneli: özet kartları, grafik kartları
+│   ├── hareket.css         Mikro etkileşimler (prefers-reduced-motion duyarlı)
 │   └── video.css           "Öğretmen Çözümü İzle" düğmesi ve video modalı
 ├── data/
 │   └── veri.js             window.LimitVeri — tüm içerik (JSON değil, global değişken)
 ├── img/
 │   └── sorular/            Orijinal sayfa taramaları (10 × WebP, 1544 × 1920)
 ├── test/
-│   └── dogrulama.html      Tarayıcıda açılan kontrol koşumu (110 kontrol)
+│   ├── dogrulama.html      Tarayıcıda açılan kontrol koşumu (115 kontrol)
+│   └── gunluk-denemesi.html Deneme günlüğü + istatistik ölçütleri (53 kontrol)
 ├── sunucu/                 E-kitabın parçası DEĞİL — anahtarı saklayan uçlar
 │   ├── supabase/
 │   │   ├── functions/limit-koc/index.ts   OpenAI vekil sunucusu (Deno)
@@ -41,6 +44,9 @@ limit-sayisal-demo/
     ├── ui-yanpanel.js      Branş sekmeleri ve sayfa/soru ağacı
     ├── ui-sayfa.js         Sahne: karşılama + tarama görüntüleyici
     ├── ui-koc.js           Koç açılır penceresi (yardım / çözüm kipleri)
+    ├── istatistik.js       Ölçüt hesabı (saf; DOM bilmez) — TEK tanım yeri
+    ├── grafik.js           Chart.js marka teması + tablo yedeği (ölçüt hesaplamaz)
+    ├── ui-istatistik.js    İstatistik sayfası: kartlar + grafik kartları
     └── app.js              Önyükleme, yönlendirme, paneller, ayarlar
 ```
 
@@ -506,9 +512,103 @@ motor soruya özel içeriği rehberin önüne alır.
 Yanıt: `{ "metin": "…" }` — Anthropic Messages biçimi (`content[0].text`) de kabul edilir.
 Uç nokta hata verirse koç sessizce çevrimdışı motora düşer, oturum kesilmez.
 
+## İstatistik paneli
+
+`?istatistik` görünümü ya da başlıktaki **İstatistiklerim** düğmesiyle açılır.
+`index.html?demo=1` sunum için örnek verilerle doldurur.
+
+### Tek veri kaynağı
+
+Panelin tamamı — beş özet kartı ve beş grafik — `Limit.istatistik.aktifGunluk()`
+üzerinden **tek bir diziden** beslenir. `Limit.istatistikSayfa.ciz()` günlüğü bir kez
+çözümler ve aynı diziyi hem `ozet()` hem `konular()` hem `hizIsabet()` hem `gelisim()`
+fonksiyonuna geçirir. Demo verisi bellekte durur (`Limit.demoVeri`), `localStorage`'a
+dokunmaz; öğrencinin gerçek geçmişi demo açıldığında silinmez.
+
+Ölçüt tanımları yalnızca `src/istatistik.js`'te durur. `src/grafik.js` **hiçbir ölçüt
+hesaplamaz**, yalnızca hazır alanları çizer. Bu ayrım olmasa kart ile grafik ayrı ayrı
+hesap yapıp farklı sayı gösterebilirdi.
+
+### Ölçütler
+
+Deneme hakkı sınırsız olduğu için klasik "doğruluk %" anlamsızdır: yeterince deneyen
+herkes sonunda %100'e ulaşır. İki ayrı ölçüt, **aynı payda** (denenen soru sayısı):
+
+| Ölçüt | Tanım |
+|---|---|
+| **İlk denemede doğru** | Kazanan denemede `deneme_no = 1` **ve** `koc_yardimi = false` |
+| **Sonunda çözülen** | Kaç deneme ve yardım sonrası olursa olsun doğruya ulaşılan |
+
+Bir konunun "güçlü / odak" diye adlandırılabilmesi için en az `KONU_ESIGI` (3) soru
+denenmiş olmalı. Panelin açılması için en az `YETERLI_VERI` (5) deneme gerekir; altında
+kırık grafik yerine nazik bir boş durum çıkar.
+
+### Hız–isabet haritası: eşikler
+
+Her konu iki eksende konumlanır — x: doğruyu bulana kadar geçen ortalama süre,
+y: ilk denemede yardımsız doğru oranı. Dört bölge: **Hızlı ve isabetli**,
+**Acele ediyorsun**, **Emin ama yavaş**, **Kavram eksiği**.
+
+İki eşik bilinçli olarak **farklı cinsten**:
+
+- **İsabet eşiği: SABİT %50** (`ISABET_ESIGI`). "İlk denemede doğru" zaten normalize bir
+  orandır; %50 "denediğim soruların yarısını ilk seferde yardımsız çözüyorum" demektir
+  ve anlamı öğrenciden öğrenciye değişmez.
+
+- **Hız eşiği: ÖĞRENCİNİN KENDİ ORTANCASI** (`yontem: 'ortanca'`). Mutlak bir "hızlı"
+  saniyesi yoktur — bir geometri sorusu ile bir periyodik tablo sorusu aynı sürede
+  çözülmez. Panelin ilkesi öğrenciyi kendi geçmişiyle kıyaslamaktır, eşik de öyle
+  davranır. Ortalama değil ortanca kullanılır: tek bir çok yavaş konu ortalamayı yukarı
+  çekip diğer her şeyi "hızlı" gösterirdi.
+
+  Ortanca yalnızca **yeterli örneklemli** (≥ 3 soru) konulardan hesaplanır; tek soruluk
+  bir konu eşiği kaydırıp bütün haritayı yerinden oynatamaz. Böyle en az iki konu yoksa
+  ortanca anlamsızdır ve sabit yedeğe düşülür: **`HIZ_ESIGI_YEDEK` = 90 sn**, sayısal
+  bölümlerde soru başına yaygın hedef tempo. Grafik özeti hangi yöntemin kullanıldığını
+  öğrenciye açıkça yazar.
+
+  Ortancaya **eşit** süre hızlı sayılır — ortancada olmak yavaş olmak değildir.
+
+Az veri uyarısı: 3 sorudan az denenmiş konu haritada soluk **üçgen** olarak çizilir ve
+adının yanına "(az veri)" eklenir. Sıfır gibi gösterilmez, ama tam ağırlıkla da
+okunmaz.
+
+### Zaman içinde gelişim
+
+Gün bazında iki çizgi: ilk denemede doğru oranı (sol eksen, %) ve ortalama süre
+(sağ eksen, sn). Her soru **ilk denendiği güne** yazılır — bu bölümleme sayesinde
+günlerin toplamı özet kartındaki "denenen soru" sayısına birebir eşittir. (Her denemeyi
+kendi gününe yazmak aynı soruyu birden çok güne dağıtır ve toplam kartla tutmazdı.)
+
+Gün sınırı **yerel saate** göre çizilir; ISO damgasının ilk 10 hanesini kesmek UTC günü
+verir ve gece geç saatte çözülen soru ertesi güne düşerdi.
+
+İki günden az veri varsa çizgi çizilmez, yerine nazik bir mesaj çıkar. Günde 3 sorudan
+az çalışılmışsa o gün içi boş üçgenle işaretlenir ve özet metni oranın tek bir soruyla
+savrulabileceğini söyler.
+
+### Erişilebilirlik ve dayanıklılık
+
+- Her grafiğin üstünde **bir cümlelik metin özeti** vardır; grafiği görmeyen de analizi
+  okur.
+- Bölge adları **renge değil yazıya** dayanır: dört bölge hem grafiğin içine yazılır hem
+  altta metin listesi olarak tekrarlanır.
+- Renk anlamı tüm grafiklerde aynı: yeşil = ilk denemede doğru, gümüş = sonradan
+  çözüldü, kızıl = yanlış / henüz çözülmedi. Süre doğruluk ölçmediği için nötr gümüş
+  kullanır. Az veri ayrımı renge ek olarak **biçimle** de verilir (üçgen / içi boş).
+- `prefers-reduced-motion: reduce` altında Chart.js animasyonu tamamen kapanır.
+- Chart.js CDN'den gelmezse her grafik aynı veriyi taşıyan bir **tabloya** düşer ve
+  panelin altında durum bir uyarı şeridiyle söylenir. Panel hiçbir koşulda boş kalmaz.
+
+### Dil
+
+Öğrenci başka öğrencilerle değil kendi geçmişiyle kıyaslanır. Zayıf konu "başarısızlık"
+değil **odak alanıdır**. Düşen trend "gerileme" diye sunulmaz; daha zor konulara geçmiş
+olma ihtimali açıkça yazılır.
+
 ## Doğrulama
 
-`test/dogrulama.html` dosyasına çift tıklayın. 110 kontrol koşar ve sonucu sayfaya
+`test/dogrulama.html` dosyasına çift tıklayın. 115 kontrol koşar ve sonucu sayfaya
 `GECTI / KALDI` listesi olarak basar. Test koşucusu, derleme ya da bağımlılık yoktur.
 
 Kapsam: veri şeması ve görsel yolları, bölge geometrisi (sayfa sınırları içinde mi, aynı
@@ -517,6 +617,13 @@ gezinme, sistem istemi kurgusu, sızıntı süzgeci (yanlış pozitifler dahil) 
 motorun kademe akışı; ayrıca canlı kip: vekil sunucu sözleşmesi, anahtar sızıntısı
 (istekte `sk-` / `service_role` var mı), sunucu hatasında yerel motora düşme ve analitik
 modülünün kapalıyken çökmemesi.
+
+`test/gunluk-denemesi.html` ikinci koşumdur: 53 kontrol. Deneme günlüğünün alan
+bütünlüğü ve kalıcılığı, 500 kayıtlık tavan, panelin tek veri kaynağı (demo kipi depoya
+dokunmuyor mu, özet ile konular aynı toplamı veriyor mu), hız–isabet eşikleri (ortanca
+yalnızca yeterli örneklemli konulardan mı, sınırda duran konu yavaş sayılıyor mu, tek
+konuda sabit yedeğe düşülüyor mu) ve gelişim serisi (gün toplamı özet kartıyla birebir
+tutuyor mu, gün sınırı yerel saate göre mi).
 
 ## Kısayollar
 
@@ -539,4 +646,4 @@ Sıfırlamak için: Ayarlar → *Demoyu sıfırla*.
 
 ## Sürüm
 
-`0.5.0-demo` · sınırsız deneme + koç modalı
+`0.6.0-demo` · istatistik paneli (özet kartları + beş grafik)

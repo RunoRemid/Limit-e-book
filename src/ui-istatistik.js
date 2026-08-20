@@ -1,12 +1,14 @@
 /* =============================================================
-   ui-istatistik.js — İstatistik sayfası (Aşama 2: iskelet + özet)
+   ui-istatistik.js — İstatistik sayfası (özet kartları + grafikler)
    -------------------------------------------------------------
    DİL İLKESİ
    Öğrenci başka öğrencilerle değil KENDİ geçmişiyle kıyaslanır.
    Zayıf konu "başarısızlık" değil "odak alanı"dır. Sayılar
    cezalandırmaz, yön gösterir.
 
-   Grafikler Aşama 3'te bu iskeletin içine yerleşecek.
+   Ölçüt hesabı burada DEĞİL src/istatistik.js'te; bu dosya yalnızca
+   günlüğü bir kez çözümleyip aynı diziyi tüm kartlara ve grafiklere
+   dağıtır. Böylece panelde iki farklı toplam çıkamaz.
    ============================================================= */
 (function (global) {
   'use strict';
@@ -177,18 +179,6 @@
     ]);
   }
 
-  /* Sonraki aşamada dolacak analizler için yer tutucu */
-  function yuva(id, ad, aciklama) {
-    return Y.el('section', { class: 'kart grafik-kart', id: id }, [
-      Y.el('header', { class: 'grafik-kart__ust' }, [
-        Y.el('h2', { class: 'grafik-kart__baslik', metin: ad }),
-        aciklama ? Y.el('p', { class: 'grafik-kart__alt', metin: aciklama }) : null
-      ]),
-      Y.el('div', { class: 'grafik-kart__govde' }, [
-        Y.el('p', { class: 'grafik-kart__bekliyor', metin: 'Bu görselleştirme bir sonraki aşamada eklenecek.' })
-      ])
-    ]);
-  }
 
   /* ----------------------------------------------------------- */
   Limit.istatistikSayfa = {
@@ -231,10 +221,15 @@
           'Doğruyu bulana kadar geçen süre',
           Limit.grafik.sureBari(konular)));
 
-        ic.appendChild(yuva('grafikHizIsabet', 'Hız–isabet haritası',
-          'Nerede acele ediyorsun, nerede kavram eksiğin var'));
-        ic.appendChild(yuva('grafikGelisim', 'Zaman içinde gelişim',
-          'Doğruluk ve süre nasıl değişiyor'));
+        /* Hız ile isabet ayrı ayrı yanıltıcıdır; bu kart ikisini
+           birlikte okur. Eşikler istatistik katmanında tanımlı. */
+        ic.appendChild(grafikKarti('grafikHizIsabet', 'Hız–isabet haritası',
+          'Nerede acele ediyorsun, nerede kavram eksiğin var',
+          Limit.grafik.hizIsabetHarita(Limit.istatistik.hizIsabet(gunluk))));
+
+        ic.appendChild(grafikKarti('grafikGelisim', 'Zaman içinde gelişim',
+          'Doğruluk ve süre nasıl değişiyor',
+          Limit.grafik.gelisimCizgi(Limit.istatistik.gelisim(gunluk))));
 
         /* Kütüphane gelmediyse bunu sessizce geçme — panelin
            tablolarla çalıştığını söyle. */

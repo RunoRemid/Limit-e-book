@@ -35,6 +35,54 @@
      zayıfsın" demek haksızlık olur. */
   var KONU_ESIGI = 3;
 
+  /* Hız–isabet haritasının eşikleri. Gerekçeleri hizIsabet()
+     başlığında ve README'de yazılı. */
+  var ISABET_ESIGI = 50;        /* % — sabit, anlamı herkeste aynı */
+  var HIZ_ESIGI_YEDEK = 90;     /* sn — ortanca hesaplanamazsa */
+
+  /* Bölge adları arayüzde renge DEĞİL yazıya dayanır; bu yüzden
+     ad ve açıklama veri katmanında durur. */
+  var BOLGELER = {
+    guclu:  { ad: 'Hızlı ve isabetli',
+              aciklama: 'Bu konularda hem hızlısın hem ilk seferde doğru buluyorsun.' },
+    acele:  { ad: 'Acele ediyorsun',
+              aciklama: 'Hızlı çözüyorsun ama ilk deneme çoğu kez tutmuyor; biraz yavaşlamak kazandırır.' },
+    yavas:  { ad: 'Emin ama yavaş',
+              aciklama: 'Doğruyu buluyorsun; sınavda zaman kazanmak için tempo çalışman yeterli.' },
+    kavram: { ad: 'Kavram eksiği',
+              aciklama: 'Hem süre uzuyor hem ilk deneme tutmuyor; konuyu tekrar etmek en çok buradan kazandırır.' }
+  };
+
+  /* ----------------------------------------------------------- */
+  function ortanca(sayilar) {
+    var s = sayilar.slice().sort(function (a, b) { return a - b; });
+    if (!s.length) return 0;
+    var orta = Math.floor(s.length / 2);
+    return s.length % 2
+      ? s[orta]
+      : Math.round((s[orta - 1] + s[orta]) / 2);
+  }
+
+  var AYLAR = ['Oca','Şub','Mar','Nis','May','Haz',
+               'Tem','Ağu','Eyl','Eki','Kas','Ara'];
+
+  /* Gün sınırı YEREL saate göre. ISO damgasının ilk 10 karakterini
+     kesmek UTC günü verir; gece geç saatte çözülen soru bir sonraki
+     güne düşer ve öğrenciye yanlış görünürdü. */
+  function gunAnahtari(zaman) {
+    var t = new Date(zaman);
+    if (isNaN(t.getTime())) return '—';
+    var ay = t.getMonth() + 1, gun = t.getDate();
+    return t.getFullYear() + '-' + (ay < 10 ? '0' : '') + ay +
+           '-' + (gun < 10 ? '0' : '') + gun;
+  }
+
+  function gunEtiketi(zaman) {
+    var t = new Date(zaman);
+    if (isNaN(t.getTime())) return '—';
+    return t.getDate() + ' ' + AYLAR[t.getMonth()];
+  }
+
   /* ----------------------------------------------------------- */
   function yuzde(pay, payda) {
     return payda ? Math.round((pay / payda) * 100) : 0;
@@ -227,6 +275,166 @@
         gucluKonu: sirali.length > 1 ? sirali[0] : null,
         odakKonu: sirali.length > 1 ? sirali[sirali.length - 1] : null,
         konuAdayi: adaylar.length
+      };
+    },
+
+    /* =========================================================
+       HIZ–İSABET HARİTASI
+       ---------------------------------------------------------
+       Her konu iki eksende konumlanır:
+         x = hız    → doğruyu bulana kadar geçen ortalama süre (sn)
+         y = isabet → ilk denemede yardımsız doğru oranı (%)
+
+       EŞİKLER — ikisi bilinçli olarak FARKLI cinsten:
+
+       İsabet eşiği SABİT (%50). "İlk denemede doğru" zaten
+       normalize bir orandır; %50 "denediğim soruların yarısını
+       ilk seferde yardımsız çözüyorum" demektir ve anlamı
+       öğrenciden öğrenciye değişmez.
+
+       Hız eşiği ÖĞRENCİNİN KENDİ ORTANCASI. Mutlak bir "hızlı"
+       saniyesi yoktur: bir geometri sorusu ile bir periyodik
+       tablo sorusu aynı sürede çözülmez. Öğrenci kendi
+       geçmişiyle kıyaslanır — panelin ilkesi budur.
+
+       Ortanca yerine ortalama kullanılmadı: tek bir çok yavaş
+       konu ortalamayı yukarı çekip diğer her şeyi "hızlı"
+       gösterirdi.
+
+       Yeterli örneklemli (>= KONU_ESIGI soru) en az iki konu
+       yoksa ortanca anlamsızdır; o zaman sabit yedeğe düşülür
+       (HIZ_ESIGI_YEDEK, soru başına ~90 sn — sayısal bölümlerde
+       yaygın hedef tempo).
+
+       Ortancaya EŞİT süre "hızlı" sayılır: ortancada olmak
+       yavaş olmak değildir.
+       ========================================================= */
+    ISABET_ESIGI: ISABET_ESIGI,
+    HIZ_ESIGI_YEDEK: HIZ_ESIGI_YEDEK,
+    BOLGELER: BOLGELER,
+
+    hizIsabet: function (gunluk) {
+      var g = gunluk || this.gunluk();
+      var konular = this.konular(g).filter(function (k) {
+        return k.ortalamaSure !== null;
+      });
+
+      /* Eşik yalnızca güvenilir konulardan hesaplanır; tek soruluk
+         bir konu ortancayı kaydırıp herkesin yerini değiştirmesin. */
+      var saglam = konular.filter(function (k) { return k.yeterliOrneklem; });
+      var esikSure, yontem;
+      if (saglam.length >= 2) {
+        esikSure = ortanca(saglam.map(function (k) { return k.ortalamaSure; }));
+        yontem = 'ortanca';
+      } else {
+        esikSure = HIZ_ESIGI_YEDEK;
+        yontem = 'sabit';
+      }
+
+      var noktalar = konular.map(function (k) {
+        var hizli = k.ortalamaSure <= esikSure;
+        var isabetli = k.ilkDenemeYuzde >= ISABET_ESIGI;
+        var anahtar = hizli
+          ? (isabetli ? 'guclu' : 'acele')
+          : (isabetli ? 'yavas' : 'kavram');
+
+        return {
+          konu: k.konu,
+          brans: k.brans,
+          denenen: k.denenen,
+          sure: k.ortalamaSure,
+          isabet: k.ilkDenemeYuzde,
+          hizli: hizli,
+          isabetli: isabetli,
+          bolge: anahtar,
+          bolgeAdi: BOLGELER[anahtar].ad,
+          /* Örneklemi zayıf konu haritada soluk ve farklı biçimde
+             çizilir: üç denemeye bakıp "kavram eksiğin var" demek
+             yanıltıcı olurdu. */
+          yeterliOrneklem: k.yeterliOrneklem
+        };
+      });
+
+      return {
+        noktalar: noktalar,
+        esikSure: esikSure,
+        esikIsabet: ISABET_ESIGI,
+        yontem: yontem,
+        /* Harita en az iki konu ister; tek nokta "bölge" anlatmaz. */
+        yeterli: noktalar.length >= 2
+      };
+    },
+
+    /* =========================================================
+       ZAMAN İÇİNDE GELİŞİM
+       ---------------------------------------------------------
+       Her soru, İLK denendiği güne yazılır. Bu bölümleme sayesinde
+       günlerin toplamı özet kartındaki "denenen soru" sayısına
+       birebir eşittir — kart ile grafik çelişemez.
+
+       Alternatif (her denemeyi kendi gününe yazmak) aynı soruyu
+       birden çok güne dağıtır, toplam kartla tutmazdı.
+
+       Gün sınırı YEREL saate göre çizilir: öğrencinin günü budur.
+       ========================================================= */
+    gelisim: function (gunluk) {
+      var g = gunluk || this.gunluk();
+      var harita = soruBazinda(g);
+      var gunler = {};
+
+      Object.keys(harita).forEach(function (id) {
+        var s = harita[id];
+        var ilk = null;
+        s.denemeler.forEach(function (d) {
+          if (!ilk || d.zaman < ilk) ilk = d.zaman;
+        });
+        if (!ilk) return;
+
+        var anahtar = gunAnahtari(ilk);
+        var gun = gunler[anahtar] || (gunler[anahtar] = {
+          gun: anahtar,
+          etiket: gunEtiketi(ilk),
+          denenen: 0,
+          cozulen: 0,
+          ilkDenemede: 0,
+          toplamSure: 0,
+          sureAdet: 0
+        });
+
+        gun.denenen++;
+        if (s.kazanan) {
+          gun.cozulen++;
+          if (ilkDenemedeMi(s)) gun.ilkDenemede++;
+          if (typeof s.kazanan.sure_sn === 'number') {
+            gun.toplamSure += s.kazanan.sure_sn;
+            gun.sureAdet++;
+          }
+        }
+      });
+
+      var sirali = Object.keys(gunler).sort().map(function (a) {
+        var gun = gunler[a];
+        gun.ilkDenemeYuzde = yuzde(gun.ilkDenemede, gun.denenen);
+        gun.ortalamaSure = gun.sureAdet
+          ? Math.round(gun.toplamSure / gun.sureAdet) : null;
+        /* Tek soruluk bir gün %0 ya da %100 verir; çizgi gerçekte
+           olmayan bir dalgalanma gösterir. İşaretlenir. */
+        gun.azVeri = gun.denenen < KONU_ESIGI;
+        return gun;
+      });
+
+      var olculebilir = sirali.filter(function (gun) {
+        return gun.ortalamaSure !== null;
+      });
+
+      return {
+        gunler: sirali,
+        /* İki nokta olmadan "trend" diye bir şey yoktur. */
+        yeterli: sirali.length >= 2,
+        gunSayisi: sirali.length,
+        ilkGun: sirali.length ? sirali[0] : null,
+        sonGun: sirali.length ? sirali[sirali.length - 1] : null,
+        sureVarMi: olculebilir.length >= 2
       };
     }
   };

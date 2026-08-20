@@ -315,3 +315,42 @@
   color: #8A5A12;
   font-size: var(--olcek-sm);
 }
+
+/* --- Hız–isabet bölge listesi --------------------------------
+   Haritanın YAZILI karşılığı. Bölge adları renkten okunmaz;
+   grafiği göremeyen de, renkleri ayırt edemeyen de analizi
+   buradan tam olarak okur. Grafik yüklenmese bile kalır. */
+.bolge-listesi {
+  list-style: none;
+  margin: var(--bosluk-4) 0 0;
+  padding: var(--bosluk-4) 0 0;
+  border-top: 1px solid var(--cizgi);
+  display: grid;
+  gap: var(--bosluk-3);
+}
+.bolge-listesi__oge {
+  display: grid;
+  gap: 2px;
+  padding-left: var(--bosluk-3);
+  /* Bölgeyi ayıran işaret nötr gümüş: kızıl/yeşil kullanmak
+     "bu bölge kötü" gibi bir anlam yükler, oysa bölge bir teşhis. */
+  border-left: 2px solid var(--gumus-acik);
+}
+.bolge-listesi__ad {
+  font-size: var(--olcek-sm);
+  font-weight: 600;
+  color: var(--murekkep);
+}
+.bolge-listesi__konular {
+  font-size: var(--olcek-sm);
+  color: var(--metin-orta);
+}
+.bolge-listesi__not {
+  font-size: var(--olcek-xs);
+  line-height: 1.5;
+  color: var(--metin-soluk);
+}
+
+@media (min-width: 760px) {
+  .bolge-listesi { grid-template-columns: 1fr 1fr; gap: var(--bosluk-4); }
+}
